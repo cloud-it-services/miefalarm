@@ -3,17 +3,56 @@
 #include "mgos_adc.h"
 #include "pt/pt.h"
 
-static uint8_t operation_mode = 0; // 0 - Messung | 1 - Calibrierung
+#define MEASURE_CYCLES 100
+#define CALIBRATE_CYCLES 100
+#define MAIN_LOOP_TICK_MS 1
+#define CONFIG_FILENAME "mq135.conf"
+
+const double a = 121.4517;
+const double b = -2.78054;
+
 static struct mgos_dht *s_dht = NULL;
-static unsigned long global_millis = 0;
+static uint64_t last_tick = 0;
 static uint8_t adc_attenuation = 3; // ADC Dämpfungsfaktor
 static uint8_t temperature = 1;
 static uint8_t humidity = 1;
+static uint16_t ppm = 0;
 static double r0 = 1;
-static uint32_t ppm = 0;
+static double rs = 0;
 
 // threads
-static struct pt pt_dht, pt_mq135, pt_button;
+static struct pt pt_dht;
+static struct pt pt_mq135_measure;
+static struct pt pt_mq135_calibrate;
+static struct pt pt_display;
+static struct pt pt_button;
+
+static void write_config()
+{
+  // store attenuation and r0 in filesystem
+  FILE *fp = fopen(CONFIG_FILENAME, "w+");
+  if (fp == NULL)
+    return;
+
+  //LOG(LL_INFO, ("write config: %d\n%.6f\n", adc_attenuation, r0));
+  fprintf(fp, "%d\n%f\n", adc_attenuation, r0);
+  fclose(fp);
+}
+
+static void read_config()
+{
+  FILE *fp = fopen(CONFIG_FILENAME, "r");
+  if (fp == NULL)
+  {
+    LOG(LL_INFO, ("%s not found\n", CONFIG_FILENAME));
+    return;
+  }
+  fscanf(fp, "%hhu\n", &adc_attenuation);
+  LOG(LL_INFO, ("set adc_attenuation: %d\n", adc_attenuation));
+  fscanf(fp, "%lf\n", &r0);
+  LOG(LL_INFO, ("set r0: %f\n", r0));
+  fclose(fp);
+}
 
 int dht_thread(struct pt *pt, uint16_t ticks)
 {
@@ -42,9 +81,7 @@ int dht_thread(struct pt *pt, uint16_t ticks)
   PT_END(pt);
 }
 
-static float a = 121.4517;
-static float b = -2.78054;
-int mq135_thread(struct pt *pt, uint16_t ticks)
+int display_thread(struct pt *pt, uint16_t ticks)
 {
   static uint16_t timer;
   timer += ticks;
@@ -53,52 +90,7 @@ int mq135_thread(struct pt *pt, uint16_t ticks)
 
   while (1)
   {
-    uint8_t i = 0;
-    int measurements[10] = {};
-    while (i < 10)
-    {
-      int val = mgos_adc_read(mgos_sys_config_get_mq135_pin());
-      // ggf. ADC Dämpfungsfaktor anpassen
-      if (val < 1000 || val > 3000)
-      {
-        if (val < 1000 && adc_attenuation)
-          adc_attenuation--;
-        else if (val > 3000 && adc_attenuation < 3)
-          adc_attenuation++;
-
-        LOG(LL_INFO, ("attenuation: %d measured val: \n", adc_attenuation, val));
-        esp32_set_channel_attenuation(mgos_sys_config_get_mq135_pin(), adc_attenuation);
-        mgos_adc_enable(mgos_sys_config_get_mq135_pin());
-        continue;
-      }
-
-      measurements[i++] = val;
-    };
-    int sum = 0;
-    while (i--)
-      sum += measurements[i];
-    int meanVal = sum / 10;
-
-    float rs = (4095.0 / meanVal - 1);
-
-    //LOG(LL_INFO, ("sum: %d\n", sum));
-    //LOG(LL_INFO, ("mean: %d\n", meanVal));
-    //LOG(LL_INFO, ("rs: %f\n", rs));
-
-    if (operation_mode == 0)
-    {
-      float rs_scaling_factor = (1.6979 - 0.012 * temperature - 0.00612 * humidity);
-      float rs_corrected = rs / rs_scaling_factor;
-      ppm = a * pow((rs_corrected / r0), b);
-      LOG(LL_INFO, ("temperature: %d *C humidity: %d %% attenuation: %d ppm: %d\n", temperature, humidity, adc_attenuation, ppm));
-    }
-    else if (operation_mode == 1)
-    {
-      r0 = rs * pow((a / 400.0), (1.0 / b));
-      LOG(LL_INFO, ("temperature: %d *C humidity: %d %% attenuation: %d r0: %f\n", temperature, humidity, adc_attenuation, r0));
-    }
-
-    // sleep 1 second
+    LOG(LL_INFO, ("temperature: %d *C humidity: %d %% attenuation: %d r0: %f rs: %f ppm: %d\n", temperature, humidity, adc_attenuation, r0, rs, ppm));
     timer = 0;
     PT_WAIT_UNTIL(pt, timer >= 1000);
   }
@@ -106,9 +98,80 @@ int mq135_thread(struct pt *pt, uint16_t ticks)
   PT_END(pt);
 }
 
+int mq135_measure_thread(struct pt *pt, uint16_t ticks)
+{
+  static uint16_t timer;
+  timer += ticks;
+
+  static uint16_t i;
+  static uint8_t timeout;
+  static float mean_voltage;
+  static uint32_t measurements;
+
+  PT_BEGIN(pt);
+
+  while (1)
+  {
+    measurements = 0;
+    for (i = 0; i < MEASURE_CYCLES; i++)
+    {
+      measurements += mgos_adc_read_voltage(mgos_sys_config_get_mq135_pin());
+      timeout = mgos_rand_range(0, 10);
+      timer = 0;
+      PT_WAIT_UNTIL(pt, timer >= timeout);
+    };
+    mean_voltage = measurements / 1000.0 / MEASURE_CYCLES;
+    LOG(LL_INFO, ("mean_voltage: %f\n", mean_voltage));
+    rs = (5.0 / mean_voltage - 1) * 10000;
+    rs /= 1.6979 - 0.012 * temperature - 0.00612 * humidity; // apply scaling factor
+    ppm = a * pow((rs / r0), b);
+  }
+
+  PT_END(pt);
+}
+
+static void init_mq135()
+{
+  esp32_set_channel_attenuation(mgos_sys_config_get_mq135_pin(), adc_attenuation);
+  mgos_adc_enable(mgos_sys_config_get_mq135_pin());
+}
+
+int mq135_calibrate_thread(struct pt *pt, uint16_t ticks)
+{
+  static uint16_t timer;
+  timer += ticks;
+
+  static uint16_t adc_raw_value;
+
+  PT_BEGIN(pt);
+
+  adc_attenuation = 3;
+  init_mq135();
+
+  while (1)
+  {
+    adc_raw_value = mgos_adc_read(mgos_sys_config_get_mq135_pin());
+    if (adc_raw_value < 1500 && adc_attenuation)
+    {
+      adc_attenuation--;
+      init_mq135();
+      timer = 0;
+      PT_WAIT_UNTIL(pt, timer >= 1000);
+      continue;
+    }
+
+    r0 = rs * pow((a / 420.0), (1.0 / b));
+    break;
+  }
+
+  write_config();
+
+  PT_EXIT(pt);
+  PT_END(pt);
+}
+
 int button_thread(struct pt *pt, uint16_t ticks)
 {
-
   static uint16_t timer;
   timer += ticks;
 
@@ -122,12 +185,11 @@ int button_thread(struct pt *pt, uint16_t ticks)
     // wait until button was released
     PT_WAIT_UNTIL(pt, mgos_gpio_read(mgos_sys_config_get_button_pin()));
 
-    // switch operation mode
-    operation_mode = (operation_mode + 1) % 2;
-    if (operation_mode)
-      LOG(LL_INFO, ("***** CALIBRATE *****\n"));
-    else
-      LOG(LL_INFO, ("***** MEASURE *****\n"));
+    // start calibration
+    LOG(LL_INFO, ("***** CALIBRATE *****\n"));
+    PT_INIT(&pt_mq135_calibrate);
+    PT_SPAWN(pt, &pt_mq135_calibrate, mq135_calibrate_thread(&pt_mq135_calibrate, ticks));
+    LOG(LL_INFO, ("***** CALIBRATION DONE *****\n"));
   }
 
   PT_END(pt);
@@ -135,55 +197,37 @@ int button_thread(struct pt *pt, uint16_t ticks)
 
 static void main_loop(void *arg)
 {
-  while (1)
-  {
-    unsigned long ts = mgos_uptime_micros() / 1000;
-    unsigned long ticks = ts - global_millis;
-    global_millis = ts;
+  uint64_t now = mgos_uptime_micros() / 1000;
+  uint64_t ticks = now - last_tick;
+  last_tick = now;
 
-    // start threads
-    dht_thread(&pt_dht, ticks);
-    mq135_thread(&pt_mq135, ticks);
-    button_thread(&pt_button, ticks);
-
-    // feed watchdog
-    mgos_wdt_feed();
-  }
+  // schedule threads
+  dht_thread(&pt_dht, ticks);
+  mq135_measure_thread(&pt_mq135_measure, ticks);
+  display_thread(&pt_display, ticks);
+  button_thread(&pt_button, ticks);
 }
-
-/*
-static void on_boot_button_pressed(int pin, void *arg)
-{
-  LOG(LL_INFO, ("***** BUTTON PRESSED %d\n",pin));
-  if (pin == mgos_sys_config_get_button_pin())
-  {
-    //LOG(LL_INFO, ("***** BUTTON PRESSED\r\n"));
-  }
-}
-*/
 
 enum mgos_app_init_result mgos_app_init(void)
 {
+  // load config
+  read_config();
+
   // init dht
   if ((s_dht = mgos_dht_create(mgos_sys_config_get_dht_pin(), DHT11)) == NULL)
-  {
     return MGOS_APP_INIT_ERROR;
-  }
 
   // init mq135
-  esp32_set_channel_attenuation(mgos_sys_config_get_mq135_pin(), adc_attenuation);
-  mgos_adc_enable(mgos_sys_config_get_mq135_pin());
-
-  // init boot button
-  //mgos_gpio_set_button_handler(mgos_sys_config_get_button_pin(), MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_NEG, 50, on_boot_button_pressed, NULL);
+  init_mq135();
 
   // init threads
   PT_INIT(&pt_dht);
-  PT_INIT(&pt_mq135);
+  PT_INIT(&pt_mq135_measure);
+  PT_INIT(&pt_mq135_calibrate);
   PT_INIT(&pt_button);
 
-  // start main loop
-  mgos_set_timer(0, false, main_loop, NULL);
+  // start main
+  mgos_set_timer(MAIN_LOOP_TICK_MS, MGOS_TIMER_REPEAT, main_loop, NULL);
 
   return MGOS_APP_INIT_SUCCESS;
 }
