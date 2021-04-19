@@ -1,6 +1,7 @@
 #include "mgos.h"
 #include "mgos_dht.h"
 #include "mgos_adc.h"
+#include "mgos_http_server.h"
 #include "pt/pt.h"
 
 #define MEASURE_CYCLES 100
@@ -34,7 +35,7 @@ static void write_config()
   if (fp == NULL)
     return;
 
-  //LOG(LL_INFO, ("write config: %d\n%.6f\n", adc_attenuation, r0));
+  //LOG(LL_DEBUG, ("write config: %d\n%.6f\n", adc_attenuation, r0));
   fprintf(fp, "%d\n%f\n", adc_attenuation, r0);
   fclose(fp);
 }
@@ -44,13 +45,13 @@ static void read_config()
   FILE *fp = fopen(CONFIG_FILENAME, "r");
   if (fp == NULL)
   {
-    LOG(LL_INFO, ("%s not found\n", CONFIG_FILENAME));
+    LOG(LL_DEBUG, ("%s not found\n", CONFIG_FILENAME));
     return;
   }
   fscanf(fp, "%hhu\n", &adc_attenuation);
-  LOG(LL_INFO, ("set adc_attenuation: %d\n", adc_attenuation));
+  LOG(LL_DEBUG, ("set adc_attenuation: %d\n", adc_attenuation));
   fscanf(fp, "%lf\n", &r0);
-  LOG(LL_INFO, ("set r0: %f\n", r0));
+  LOG(LL_DEBUG, ("set r0: %f\n", r0));
   fclose(fp);
 }
 
@@ -70,7 +71,7 @@ int dht_thread(struct pt *pt, uint16_t ticks)
     {
       temperature = t;
       humidity = h;
-      //LOG(LL_INFO, ("temperature: %f *C humidity: %f %%\n", t, h));
+      //LOG(LL_DEBUG, ("temperature: %f *C humidity: %f %%\n", t, h));
     }
 
     // sleep 1 second
@@ -90,7 +91,7 @@ int display_thread(struct pt *pt, uint16_t ticks)
 
   while (1)
   {
-    LOG(LL_INFO, ("temperature: %d *C humidity: %d %% attenuation: %d r0: %f rs: %f ppm: %d\n", temperature, humidity, adc_attenuation, r0, rs, ppm));
+    LOG(LL_DEBUG, ("temperature: %d *C humidity: %d %% attenuation: %d r0: %f rs: %f ppm: %d\n", temperature, humidity, adc_attenuation, r0, rs, ppm));
     timer = 0;
     PT_WAIT_UNTIL(pt, timer >= 1000);
   }
@@ -121,7 +122,7 @@ int mq135_measure_thread(struct pt *pt, uint16_t ticks)
       PT_WAIT_UNTIL(pt, timer >= timeout);
     };
     mean_voltage = measurements / 1000.0 / MEASURE_CYCLES;
-    LOG(LL_INFO, ("mean_voltage: %f\n", mean_voltage));
+    LOG(LL_DEBUG, ("mean_voltage: %f\n", mean_voltage));
     rs = (5.0 / mean_voltage - 1) * 10000;
     rs /= 1.6979 - 0.012 * temperature - 0.00612 * humidity; // apply scaling factor
     ppm = a * pow((rs / r0), b);
@@ -186,10 +187,10 @@ int button_thread(struct pt *pt, uint16_t ticks)
     PT_WAIT_UNTIL(pt, mgos_gpio_read(mgos_sys_config_get_button_pin()));
 
     // start calibration
-    LOG(LL_INFO, ("***** CALIBRATE *****\n"));
+    LOG(LL_DEBUG, ("***** CALIBRATE *****\n"));
     PT_INIT(&pt_mq135_calibrate);
     PT_SPAWN(pt, &pt_mq135_calibrate, mq135_calibrate_thread(&pt_mq135_calibrate, ticks));
-    LOG(LL_INFO, ("***** CALIBRATION DONE *****\n"));
+    LOG(LL_DEBUG, ("***** CALIBRATION DONE *****\n"));
   }
 
   PT_END(pt);
@@ -208,9 +209,34 @@ static void main_loop(void *arg)
   button_thread(&pt_button, ticks);
 }
 
+typedef struct
+{
+  uint8_t temperature;
+  uint8_t humidity;
+} sensor_data;
+
+int json(struct json_out *out, va_list *ap)
+{
+  sensor_data *t = va_arg(*ap, sensor_data *);
+  return json_printf(out, "{temperature: %d, humidity: %d}", t->temperature, t->humidity);
+}
+
+static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user_data)
+{
+  if (ev != MG_EV_HTTP_REQUEST)
+    return;
+
+  char buf[200];
+  struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
+  sensor_data sd = {temperature, humidity};
+  json_printf(&out, "%M", json, &sd);
+  mg_send_response_line(c, 200, "Content-Type: application/json\r\n");
+  mg_printf(c, "%s\r\n", buf);
+  c->flags |= MG_F_SEND_AND_CLOSE;
+}
+
 enum mgos_app_init_result mgos_app_init(void)
 {
-  // load config
   read_config();
 
   // init dht
@@ -225,6 +251,9 @@ enum mgos_app_init_result mgos_app_init(void)
   PT_INIT(&pt_mq135_measure);
   PT_INIT(&pt_mq135_calibrate);
   PT_INIT(&pt_button);
+
+  // http handler
+  mgos_register_http_endpoint("/api/sensor/values", get_sensor_data, NULL);
 
   // start main
   mgos_set_timer(MAIN_LOOP_TICK_MS, MGOS_TIMER_REPEAT, main_loop, NULL);

@@ -17,9 +17,14 @@ filesystem:
   - fs
 
 config_schema:
+  - ["debug.level", "i", 3, { title: "Log level 0..error - 3..debug" }]
   - ["dht.pin", "i", 27, { title: "DHT 11 GPIO PIN" }]
   - ["mq135.pin", "i", 36, { title: "MQ135 GPIO PIN" }]
   - ["button.pin", "i", 0, { title: "Boot Button GPIO PIN" }]
+  - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP" }]
+  - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP" }]
+  - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP" }]
+  - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP" }]
 
 includes:
   - libs
@@ -29,11 +34,19 @@ libs:
   - origin: https://github.com/mongoose-os-libs/core
   - origin: https://github.com/mongoose-os-libs/dht
   - origin: https://github.com/mongoose-os-libs/adc
-  #- origin: https://github.com/mongoose-os-libs/fstab
-  #- origin: https://github.com/mongoose-os-libs/vfs-fs-lfs
+  - origin: https://github.com/mongoose-os-libs/ca-bundle
+  - origin: https://github.com/mongoose-os-libs/http-server
+  - origin: https://github.com/mongoose-os-libs/wifi
   - origin: https://github.com/mongoose-os-libs/rpc-uart
   - origin: https://github.com/mongoose-os-libs/rpc-service-fs
   - origin: https://github.com/mongoose-os-libs/rpc-service-config
+  - origin: https://github.com/mongoose-os-libs/rpc-service-wifi
+  #- origin: https://github.com/mongoose-os-libs/fstab
+  #- origin: https://github.com/mongoose-os-libs/vfs-fs-lfs
+
+cdefs:
+  MGOS_ENABLE_WEB_CONFIG: 1
+  MGOS_ENABLE_FILE_UPLOAD: 1
 
 cflags:
   - "-Wimplicit-fallthrough=0"
