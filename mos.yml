@@ -18,8 +18,8 @@ filesystem:
 
 config_schema:
   - ["debug.level", "i", 3, { title: "Log level 0..error - 3..debug" }]
-  - ["dht.pin", "i", 27, { title: "DHT 11 GPIO PIN" }]
-  - ["mq135.pin", "i", 36, { title: "MQ135 GPIO PIN" }]
+  - ["dht.pin", "i", 23, { title: "DHT 11 GPIO PIN" }]
+  - ["mhz19c.hd.pin", "i", 21, { title: "MH-Z19c HD GPIO PIN" }]
   - ["button.pin", "i", 0, { title: "Boot Button GPIO PIN" }]
   - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP" }]
   - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP" }]
@@ -33,7 +33,6 @@ libs:
   - origin: https://github.com/mongoose-os-libs/boards
   - origin: https://github.com/mongoose-os-libs/core
   - origin: https://github.com/mongoose-os-libs/dht
-  - origin: https://github.com/mongoose-os-libs/adc
   - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/mongoose-os-libs/http-server
   - origin: https://github.com/mongoose-os-libs/wifi

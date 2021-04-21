@@ -345,15 +345,29 @@
 </head>
 
 <body>
+  <!--
   <nav class="nav" tabindex="-1" onclick="this.focus()">
     <div class="container">
       <a class="pagename current" href="https://mongoose-os.com">Mongoose OS app</a>
       <a class="pagename current" href="https://mongoose-os.com">Mongoose OS app</a>
     </div>
   </nav>
+  -->
   <div class="container">
     <div class="row form">
-      <div class="col c6">
+      <div class="col c4">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              CO2 in ppm
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="ct-chart ct-golden-section" id="co2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col c4">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">
@@ -365,7 +379,7 @@
           </div>
         </div>
       </div>
-      <div class="col c6">
+      <div class="col c4">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">
@@ -537,6 +551,12 @@
     }
 
     var chartData = {
+      co2: {
+        labels: [],
+        series: [
+          []
+        ]
+      },
       temperature: {
         labels: [],
         series: [
@@ -551,6 +571,7 @@
       }
     }
     var charts = {
+      co2: null,
       temperature: null,
       humidity: null
     }
@@ -567,7 +588,7 @@
         axisY: {
           type: Chartist.FixedScaleAxis,
           low: 0,
-          high: 50,
+          high: 5000,
           divisor: 5,
         },
         lineSmooth: Chartist.Interpolation.cardinal({
@@ -581,11 +602,17 @@
         },
         plugins: [
           Chartist.plugins.ctThreshold({
-            threshold: 25
+            threshold: 1000
           })
         ]
       }
 
+      charts.co2 = new Chartist.Line('#co2', chartData.co2, options)
+
+      options.axisY.high = 50
+      options.plugins = [Chartist.plugins.ctThreshold({
+        threshold: 25
+      })]
       charts.temperature = new Chartist.Line('#temperature', chartData.temperature, options)
 
       options.axisY.high = 100
