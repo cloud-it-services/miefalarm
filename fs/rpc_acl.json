@@ -1,0 +1,14 @@
+[
+    {
+        "method": "Config.*",
+        "acl": "+admin"
+    },
+    {
+        "method": "Wifi.Scan",
+        "acl": "+admin"
+    },
+    {
+        "method": "*",
+        "acl": "-*"
+    }
+]

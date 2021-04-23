@@ -9,7 +9,9 @@ select {
     margin: 0
 }
 
-*, :after, :before {
+*,
+:after,
+:before {
     box-sizing: border-box;
 }
 
@@ -214,13 +216,19 @@ input[type=text] {
 .nav,
 .nav .current,
 .nav a:hover {
-    background: #000;
+    background: #efefef;
     color: #fff
 }
 
 .nav {
+    z-index: 1;
+    position: fixed;
+    top: 0;
+    width: 20%;
+    /*
     height: 24px;
     padding: 11px 0 15px
+    */
 }
 
 .nav a {
@@ -256,6 +264,10 @@ input[type=text] {
     .row .col {
         width: 100%
     }
+
+    .nav {
+        width: 95%;
+    }
 }
 
 @media(max-width:500px) {
@@ -264,6 +276,7 @@ input[type=text] {
     }
 
     .nav {
+        width: 90%;
         overflow: hidden
     }
 
@@ -324,6 +337,7 @@ input[type=text] {
     margin-bottom: 0.3em;
 }
 
+/*
 .c4 {
     padding: 10px;
     box-sizing: border-box;
@@ -337,6 +351,7 @@ input[type=text] {
     margin-top: 10px;
     display: inline-block;
 }
+*/
 
 .form-control {
     margin: 0.5em 0;

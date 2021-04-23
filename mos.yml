@@ -21,10 +21,18 @@ config_schema:
   - ["dht.pin", "i", 23, { title: "DHT 11 GPIO PIN" }]
   - ["mhz19c.hd.pin", "i", 21, { title: "MH-Z19c HD GPIO PIN" }]
   - ["button.pin", "i", 0, { title: "Boot Button GPIO PIN" }]
+  - ["rpc.auth_domain", "s", "settings",{title: "Realm to use for digest authentication"}]
+  - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
+  - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
+  #- ["http.auth_domain", "s", "settings", {title: "Enable authentication of all HTTP requests"}]
+  #- ["http.auth_file", "s", "rpc_auth.txt", {title: "Password file to use for auth"}]
   - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP" }]
   - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP" }]
   - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP" }]
   - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP" }]
+  - ["cloud.sensor.events.url", "s", "", { title: "Cloud endpoint for sensor events push"}]
+  - ["cloud.sensor.events.interval", "i", 10, { title: "Interval in seconds for sensor events push"}]
+  - ["admin.password", "s", "admin", { title: "Password for device settings"}]
 
 includes:
   - libs
@@ -36,6 +44,7 @@ libs:
   - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/mongoose-os-libs/http-server
   - origin: https://github.com/mongoose-os-libs/wifi
+  - origin: https://github.com/mongoose-os-libs/rpc-common
   - origin: https://github.com/mongoose-os-libs/rpc-uart
   - origin: https://github.com/mongoose-os-libs/rpc-service-fs
   - origin: https://github.com/mongoose-os-libs/rpc-service-config

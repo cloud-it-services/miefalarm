@@ -25,6 +25,7 @@ static uint64_t last_tick = 0;
 static uint8_t temperature = 1;
 static uint8_t humidity = 1;
 static uint16_t ppm = 0;
+static uint8_t calibrating = 0;
 
 // threads
 static struct pt pt_dht;
@@ -75,8 +76,8 @@ uint8_t getCRC(uint8_t *data)
 void mhz19c_build_command(uint8_t command, uint16_t data, uint8_t *cmd_buffer)
 {
   /* values for conversions */
-  uint8_t high = data >> 8;
-  //uint8_t low = data & 0x00FF;
+  uint8_t high = (data >> 8) & 0xFF;
+  uint8_t low = data & 0xFF;
   memset(cmd_buffer, 0, MHZ19_DATA_LEN);
   cmd_buffer[0] = 0xFF;    ///(0xFF) 255/FF means 'any' address (where the sensor is located)
   cmd_buffer[1] = 0x01;    // set  register (0x01) arbitrary byte number
@@ -85,10 +86,10 @@ void mhz19c_build_command(uint8_t command, uint16_t data, uint8_t *cmd_buffer)
   switch (command)
   {
   case MHZ19C_CMD_ABC_MODE:
-    cmd_buffer[3] = high;
+    cmd_buffer[3] = low;
     break;
   case MHZ19C_CMD_CALIBRATE:
-    cmd_buffer[6] = data;
+    cmd_buffer[6] = high;
     break;
   case MHZ19C_CMD_READ_CO2:
     break;
@@ -100,8 +101,9 @@ void mhz19c_build_command(uint8_t command, uint16_t data, uint8_t *cmd_buffer)
 
 void mhz19c_receive_response(uint8_t *data)
 {
+  memset(data, 0, MHZ19_DATA_LEN);
   mgos_uart_read(UART_NO, data, MHZ19_DATA_LEN);
-  LOG(LL_DEBUG, ("mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]));
+  LOG(LL_INFO, ("mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]));
   uint8_t crc = getCRC(data);
   if (data[8] != crc)
     LOG(LL_WARN, ("***** CRC error *****\n"));
@@ -112,7 +114,7 @@ void mhz19c_send_command(uint8_t command, uint16_t data)
   uint8_t cmd_buffer[MHZ19_DATA_LEN];
   mhz19c_build_command(command, data, cmd_buffer);
 
-  LOG(LL_DEBUG, ("mhz19c send: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", cmd_buffer[0], cmd_buffer[1], cmd_buffer[2], cmd_buffer[3], cmd_buffer[4], cmd_buffer[5], cmd_buffer[6], cmd_buffer[7], cmd_buffer[8]));
+  LOG(LL_INFO, ("mhz19c send: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", cmd_buffer[0], cmd_buffer[1], cmd_buffer[2], cmd_buffer[3], cmd_buffer[4], cmd_buffer[5], cmd_buffer[6], cmd_buffer[7], cmd_buffer[8]));
   mgos_uart_flush(UART_NO);
   mgos_uart_write(UART_NO, cmd_buffer, MHZ19_DATA_LEN);
   mgos_uart_flush(UART_NO);
@@ -163,9 +165,6 @@ bool mhz19c_init()
 
   //mgos_uart_set_dispatcher(UART_NO, mhz19c_data_receiver, NULL);
   mgos_uart_set_rx_enabled(UART_NO, true);
-
-  // disable auto calibration
-  mhz19c_send_command(MHZ19C_CMD_ABC_MODE, MHZ19C_ABC_MODE_OFF);
   return true;
 }
 
@@ -222,6 +221,12 @@ int mhz19c_measure_thread(struct pt *pt, uint16_t ticks)
 
   PT_BEGIN(pt);
 
+  // disable auto calibration
+  mhz19c_send_command(MHZ19C_CMD_ABC_MODE, MHZ19C_ABC_MODE_OFF);
+  timer = 0;
+  PT_WAIT_UNTIL(pt, timer >= 100);
+  mhz19c_receive_response(response);
+
   while (1)
   {
     mhz19c_send_command(MHZ19C_CMD_READ_CO2, 0);
@@ -230,7 +235,8 @@ int mhz19c_measure_thread(struct pt *pt, uint16_t ticks)
 
     if (response[1] == MHZ19C_CMD_READ_CO2)
     {
-      ppm = response[3] | (response[2] << 8);
+      ppm = (response[2] << 8) | response[3];
+      ppm += 20; // co2 correction
     }
     timer = 0;
     PT_WAIT_UNTIL(pt, timer >= 1000);
@@ -246,13 +252,17 @@ int mhz19c_calibrate_thread(struct pt *pt, uint16_t ticks)
 
   PT_BEGIN(pt);
 
+  calibrating = 1;
+
   mgos_gpio_write(mgos_sys_config_get_mhz19c_hd_pin(), LOW);
   mgos_gpio_set_mode(mgos_sys_config_get_mhz19c_hd_pin(), MGOS_GPIO_MODE_OUTPUT);
 
   timer = 0;
-  PT_WAIT_UNTIL(pt, timer >= 10000);
+  PT_WAIT_UNTIL(pt, timer >= 7000);
 
   mgos_gpio_write(mgos_sys_config_get_mhz19c_hd_pin(), HIGH);
+
+  calibrating = 0;
 
   PT_EXIT(pt);
   PT_END(pt);
@@ -301,12 +311,13 @@ typedef struct
   uint8_t temperature;
   uint8_t humidity;
   uint16_t co2;
+  uint8_t calibrating;
 } sensor_data;
 
 int json(struct json_out *out, va_list *ap)
 {
   sensor_data *t = va_arg(*ap, sensor_data *);
-  return json_printf(out, "{temperature: %d, humidity: %d, co2: %d}", t->temperature, t->humidity, t->co2);
+  return json_printf(out, "{temperature: %d, humidity: %d, co2: %d, calibrating: %B}", t->temperature, t->humidity, t->co2, t->calibrating);
 }
 
 static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user_data)
@@ -316,7 +327,7 @@ static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user
 
   char buf[200];
   struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
-  sensor_data sd = {temperature, humidity, ppm};
+  sensor_data sd = {temperature, humidity, ppm, calibrating};
   json_printf(&out, "%M", json, &sd);
   mg_send_response_line(c, 200, "Content-Type: application/json\r\n");
   mg_printf(c, "%s\r\n", buf);
