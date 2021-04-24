@@ -30,7 +30,7 @@ config_schema:
   - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP" }]
   - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP" }]
   - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP" }]
-  - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
+  - ["push.url", "s", "http://test.cloudstack5.appspot.com/api/inbound/test?access_token=kl0sFX5VsW-bTnbE5ytDkv6mpq1yv3937lUQfP_pFzhO3AprGSZyciHiQzRFajxtc2wJmVDATdvp9gBllYXZ0AmGXU1", { title: "Push endpoint for sensor events"}]
   - ["push.interval", "i", 10, { title: "Push interval in seconds"}]
   - ["admin.pass", "s", "admin", { title: "Password for device settings"}]
 

@@ -33,6 +33,7 @@ static struct pt pt_display;
 static struct pt pt_button;
 static struct pt pt_mhz19c_calibrate;
 static struct pt pt_mhz19c_measure;
+static struct pt pt_http_push;
 
 /*
 static void write_config()
@@ -62,6 +63,53 @@ static void read_config()
   fclose(fp);
 }
 */
+
+typedef struct
+{
+  uint8_t temperature;
+  uint8_t humidity;
+  uint16_t co2;
+  uint8_t calibrating;
+} sensor_data;
+
+int json(struct json_out *out, va_list *ap)
+{
+  sensor_data *t = va_arg(*ap, sensor_data *);
+  return json_printf(out, "{temperature: %d, humidity: %d, co2: %d, calibrating: %B}", t->temperature, t->humidity, t->co2, t->calibrating);
+}
+
+static void sensor_data_to_json(char *buf, uint8_t len)
+{
+  struct json_out out = JSON_OUT_BUF(buf, len);
+  sensor_data sd = {temperature, humidity, ppm, calibrating};
+  json_printf(&out, "%M", json, &sd);
+}
+
+static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user_data)
+{
+  if (ev != MG_EV_HTTP_REQUEST)
+    return;
+
+  char buf[200];
+  sensor_data_to_json(buf, sizeof(buf));
+  mg_send_response_line(c, 200, "Content-Type: application/json\r\n");
+  mg_printf(c, "%s\r\n", buf);
+  c->flags |= MG_F_SEND_AND_CLOSE;
+}
+
+static void post_sensor_data()
+{
+  const char *url = mgos_sys_config_get_push_url();
+  if (url == NULL)
+    return;
+
+  char buf[200];
+  sensor_data_to_json(buf, sizeof(buf));
+  struct mg_mgr *mgr = mgos_get_mgr();
+  struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", buf);
+  if (conn == NULL)
+    LOG(LL_ERROR, ("Failed to connect to %s", url));
+}
 
 uint8_t getCRC(uint8_t *data)
 {
@@ -119,38 +167,6 @@ void mhz19c_send_command(uint8_t command, uint16_t data)
   mgos_uart_write(UART_NO, cmd_buffer, MHZ19_DATA_LEN);
   mgos_uart_flush(UART_NO);
 }
-
-/*
-static void mhz19c_data_receiver(int uart_no, void *arg)
-{
-  uint8_t data[MHZ19_DATA_LEN];
-  memset(data, 0, MHZ19_DATA_LEN);
-  assert(uart_no == UART_NO);
-  size_t rx_av = mgos_uart_read_avail(uart_no);
-  if (rx_av == 0)
-    return;
-
-  mgos_uart_read(uart_no, data, rx_av);
-  uint8_t crc = getCRC(data);
-  if (data[8] != crc)
-    LOG(LL_DEBUG, ("***** CRC error *****\n"));
-
-  LOG(LL_DEBUG, ("mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n",data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8]));
-
-  uint8_t command = data[2];
-
-  // TODO: read CO2 value and calc ppm
-  switch (command)
-  {
-  case MHZ19C_CMD_ABC_MODE:
-    break;
-  case MHZ19C_CMD_CALIBRATE:
-    break;
-  case MHZ19C_CMD_READ_CO2:
-    break;
-  }
-}
-*/
 
 bool mhz19c_init()
 {
@@ -223,8 +239,8 @@ int mhz19c_measure_thread(struct pt *pt, uint16_t ticks)
 
   // disable auto calibration
   mhz19c_send_command(MHZ19C_CMD_ABC_MODE, MHZ19C_ABC_MODE_OFF);
-  timer = 0;
-  PT_WAIT_UNTIL(pt, timer >= 100);
+  //timer = 0;
+  //PT_WAIT_UNTIL(pt, timer >= 100);
   mhz19c_receive_response(response);
 
   while (1)
@@ -293,6 +309,23 @@ int button_thread(struct pt *pt, uint16_t ticks)
   PT_END(pt);
 }
 
+int http_push_thread(struct pt *pt, uint16_t ticks)
+{
+  static uint16_t timer;
+  timer += ticks;
+
+  PT_BEGIN(pt);
+
+  while (1)
+  {
+    post_sensor_data();
+    timer = 0;
+    PT_WAIT_UNTIL(pt, timer >= mgos_sys_config_get_push_interval() * 1000);
+  }
+
+  PT_END(pt);
+}
+
 static void main_loop(void *arg)
 {
   uint64_t now = mgos_uptime_micros() / 1000;
@@ -304,34 +337,9 @@ static void main_loop(void *arg)
   mhz19c_measure_thread(&pt_mhz19c_measure, ticks);
   display_thread(&pt_display, ticks);
   button_thread(&pt_button, ticks);
-}
-
-typedef struct
-{
-  uint8_t temperature;
-  uint8_t humidity;
-  uint16_t co2;
-  uint8_t calibrating;
-} sensor_data;
-
-int json(struct json_out *out, va_list *ap)
-{
-  sensor_data *t = va_arg(*ap, sensor_data *);
-  return json_printf(out, "{temperature: %d, humidity: %d, co2: %d, calibrating: %B}", t->temperature, t->humidity, t->co2, t->calibrating);
-}
-
-static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user_data)
-{
-  if (ev != MG_EV_HTTP_REQUEST)
-    return;
-
-  char buf[200];
-  struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
-  sensor_data sd = {temperature, humidity, ppm, calibrating};
-  json_printf(&out, "%M", json, &sd);
-  mg_send_response_line(c, 200, "Content-Type: application/json\r\n");
-  mg_printf(c, "%s\r\n", buf);
-  c->flags |= MG_F_SEND_AND_CLOSE;
+  if (mgos_sys_config_get_push_url() != NULL) {
+    http_push_thread(&pt_http_push, ticks);
+  }
 }
 
 enum mgos_app_init_result mgos_app_init(void)
@@ -350,6 +358,7 @@ enum mgos_app_init_result mgos_app_init(void)
   PT_INIT(&pt_dht);
   PT_INIT(&pt_mhz19c_measure);
   PT_INIT(&pt_button);
+  PT_INIT(&pt_http_push);
 
   // http handler
   mgos_register_http_endpoint("/api/sensor/values", get_sensor_data, NULL);
