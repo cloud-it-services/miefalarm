@@ -1,10 +1,24 @@
 [
     {
+        "method": "RPC.*",
+        "acl": "*"
+    },
+    {
+        "method": "FS.*",
+        "acl": "*"
+    },
+    {
+        "method": "SYS.*",
+        "acl": "*"
+    },
+    {
         "method": "Config.*",
+        "ch_type": "HTTP",
         "acl": "+admin"
     },
     {
         "method": "Wifi.Scan",
+        "ch_type": "HTTP",
         "acl": "+admin"
     },
     {

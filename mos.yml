@@ -30,9 +30,9 @@ config_schema:
   - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP" }]
   - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP" }]
   - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP" }]
-  - ["cloud.sensor.events.url", "s", "", { title: "Cloud endpoint for sensor events push"}]
-  - ["cloud.sensor.events.interval", "i", 10, { title: "Interval in seconds for sensor events push"}]
-  - ["admin.password", "s", "admin", { title: "Password for device settings"}]
+  - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
+  - ["push.interval", "i", 10, { title: "Push interval in seconds"}]
+  - ["admin.pass", "s", "admin", { title: "Password for device settings"}]
 
 includes:
   - libs

@@ -381,7 +381,7 @@
       </div>
     </div>
     <div class="content">
-      <section>
+      <section id="dashboard">
         <h2>Dashboard</h2>
         <div class="row form">
           <div class="col c4">
@@ -423,14 +423,14 @@
           </div>
         </div>
       </section>
-      <section>
+      <section id="settings">
         <h2>Settings</h2>
         <div class="row form">
           <div class="col c12">
             <div class="card">
               <div class="card-header">
                 <div class="form-control" style="float:right">
-                  <button id="btn_save_config" class="btn btn-sm btn-c" disabled>Save settings</button>
+                  <button id="btn_save_config" class="btn btn-sm btn-c" onclick="saveConfig()" disabled>Save settings</button>
                 </div>
               </div>
               <div class="card-body">
@@ -442,23 +442,23 @@
                     </div>
                     <div class="form-control">
                       <label for="wifi_pass">WiFi Password:</label>
-                      <input type="text" class="smooth" id="wifi_pass" placeholder="Type WiFi password...">
+                      <input type="password" class="smooth" id="wifi_pass" minlength="8">
                     </div>
                   </div>
                   <div class="col c4">
-                    <!--
                     <div class="form-control">
-                      <label for="sensor_config_url">Sensor Config URL:</label>
-                      <input type="text" class="smooth" id="sensor_config_url" placeholder="Type Sensor Config URL...">
-                    </div>
-                    -->
-                    <div class="form-control">
-                      <label for="sensor_events_url">Events Push URL:</label>
-                      <input type="text" class="smooth" id="sensor_events_url" placeholder="Type Sensor Events URL...">
+                      <label for="push_url">Events Push URL:</label>
+                      <input type="url" class="smooth" id="push_url" placeholder="https://example.com/events" pattern="https://.*" size="30">
                     </div>
                     <div class="form-control">
-                      <label for="sensor_events_url">Push Interval:</label>
-                      <input type="text" class="smooth" id="sensor_events_interval" placeholder="Type Sensor Push Interval...">&nbsp;seconds
+                      <label for="push_interval">Push Interval:</label>
+                      <input type="number" class="smooth" id="push_interval" size="5">&nbsp;seconds
+                    </div>
+                  </div>
+                  <div class="col c4">
+                    <div class="form-control">
+                      <label for="admin_pass">Admin Password:</label>
+                      <input type="password" class="smooth" id="admin_pass" minlength="8">
                     </div>
                   </div>
                 </div>
@@ -471,14 +471,18 @@
   </div>
 
   <script>
+    const page_dashboard = document.getElementById("dashboard")
+    const page_settings = document.getElementById("settings")
+
     const input_wifi_ssid = document.getElementById("wifi_ssid")
     const input_wifi_pass = document.getElementById("wifi_pass")
-    
-    const input_sensor_events_url = document.getElementById("sensor_events_url")
-    const input_sensor_events_interval = document.getElementById("sensor_events_interval")
+
+    const input_push_url = document.getElementById("push_url")
+    const input_push_interval = document.getElementById("push_interval")
+
+    const input_admin_pass = document.getElementById("admin_pass")
 
     const btn_save_config = document.getElementById("btn_save_config")
-    btn_save_config.onclick = saveConfig
 
     const textFields = {
       co2: document.getElementById("currentCO2"),
@@ -533,45 +537,39 @@
         console.error("load config failed")
         return
       }
-      let data = await resp.json();
-      console.log(`config loaded: ${JSON.stringify(data)}`)
-
-      config = data
-      input_wifi_pass.value = config.wifi.sta.pass
-      input_sensor_events_url.value = config.cloud.sensor.events.url
-      input_sensor_events_interval.value = config.cloud.sensor.events.interval
+      return await resp.json();
     }
 
     async function saveConfig() {
 
-      let ssid = input_wifi_ssid.value
-      let pass = input_wifi_pass.value
-      let sensor_events_url = input_sensor_events_url.value
-      let sensor_events_interval = input_sensor_events_interval.value
-      //let sensor_config_url = input_sensor_config_url.value
+      let pl = {
+        config: {
+          wifi: {},
+          push: {},
+          admin:{}
+        }
+      }
+      if (input_wifi_pass.value) {
+        pl.config.wifi.sta = {
+          enable: true,
+          dhcp_hostname: "miefalarm",
+          ssid: input_wifi_ssid.value,
+          pass: input_wifi_pass.value
+        }
+      }
+      if (input_push_url.value) {
+        pl.config.push.url = input_push_url.value
+      }
+      if (input_push_interval.value) {
+        pl.config.push.interval = input_push_interval.value
+      }
+      if (input_admin_pass.value) {
+        pl.config.admin.pass = input_admin_pass.value
+      }
 
       let resp = await fetch("/rpc/Config.Set", {
         method: "POST",
-        body: JSON.stringify({
-          config: {
-            wifi: {
-              sta: {
-                enable: true,
-                dhcp_hostname: "miefalarm",
-                ssid: ssid,
-                pass: pass
-              }
-            },
-            cloud: {
-              sensor: {
-                events: {
-                  url: sensor_events_url,
-                  interval: sensor_events_interval
-                }
-              }
-            }
-          }
-        }),
+        body: JSON.stringify(pl),
       })
       if (resp.status !== 200) {
         console.error("save config failed")
@@ -593,8 +591,15 @@
     }
 
     async function onSettingsClicked() {
-      await loadConfig()
-      await wifiScan()
+      config = await loadConfig()
+      if (config) {
+        input_wifi_pass.value = config.wifi.sta.pass
+        input_push_url.value = config.push.url
+        input_push_interval.value = config.push.interval
+        input_admin_pass.value = config.admin.pass
+        await wifiScan()
+        //page_settings.style.display = "block"
+      }
     }
 
     var chartData = {
