@@ -2,6 +2,7 @@
 #include "mgos_dht.h"
 #include "mgos_uart.h"
 #include "mgos_http_server.h"
+#include "mgos_mqtt.h"
 #include "pt/pt.h"
 
 #define UART_NO 2
@@ -34,6 +35,7 @@ static struct pt pt_button;
 static struct pt pt_mhz19c_calibrate;
 static struct pt pt_mhz19c_measure;
 static struct pt pt_http_push;
+static struct pt pt_mqtt_push;
 
 /*
 static void write_config()
@@ -97,6 +99,39 @@ static void get_sensor_data(struct mg_connection *c, int ev, void *p, void *user
   c->flags |= MG_F_SEND_AND_CLOSE;
 }
 
+/*
+static void ev_handler(struct mg_connection *c, int ev, void *evd, void *cb_arg)
+{
+  const struct http_message *msg = (const struct http_message *)(evd);
+  switch (ev)
+  {
+  case MG_EV_CONNECT:
+    LOG(LL_INFO, ("CONNECT %s:%d - err=%d", __FUNCTION__, __LINE__, *(int *)evd));
+    if (*(int *)evd != 0)
+    {
+      c->flags |= MG_F_CLOSE_IMMEDIATELY;
+      return;
+    }
+    break;
+  case MG_EV_HTTP_REPLY:
+  {
+    LOG(LL_INFO, ("Got reply:\n%.*s\n", (int) msg->body.len, msg->body.p));
+    c->flags |= MG_F_SEND_AND_CLOSE;
+    
+    //LOG(LL_INFO, ("%s:%d - MG_EV_HTTP_REPLY - len=%d", __FUNCTION__, __LINE__, (int)msg->body.len));
+    //c->flags |= MG_F_CLOSE_IMMEDIATELY;
+    //break;
+  }
+  case MG_EV_CLOSE:
+    break;
+  default:
+    LOG(LL_INFO, ("HTTP EVENT"));
+  }
+
+  (void)cb_arg;
+}
+*/
+
 static void post_sensor_data()
 {
   const char *url = mgos_sys_config_get_push_url();
@@ -107,6 +142,7 @@ static void post_sensor_data()
   sensor_data_to_json(buf, sizeof(buf));
   struct mg_mgr *mgr = mgos_get_mgr();
   struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", buf);
+
   if (conn == NULL)
     LOG(LL_ERROR, ("Failed to connect to %s", url));
 }
@@ -309,6 +345,31 @@ int button_thread(struct pt *pt, uint16_t ticks)
   PT_END(pt);
 }
 
+int mqtt_push_thread(struct pt *pt, uint16_t ticks)
+{
+  static uint16_t timer;
+  timer += ticks;
+
+  PT_BEGIN(pt);
+
+  while (1)
+  {
+    char topic[100];
+    snprintf(topic, sizeof(topic), "losant/%s/state", mgos_sys_config_get_mqtt_client_id());
+    
+    char buf[200];
+    sensor_data_to_json(buf, sizeof(buf));
+    
+    uint16_t res = mgos_mqtt_pubf(topic, 0, false, "{data:%s}", buf);
+    LOG(LL_INFO, ("mqtt success: %d\n", res));
+
+    timer = 0;
+    PT_WAIT_UNTIL(pt, timer >= mgos_sys_config_get_push_interval() * 1000);
+  }
+
+  PT_END(pt);
+}
+
 int http_push_thread(struct pt *pt, uint16_t ticks)
 {
   static uint16_t timer;
@@ -337,9 +398,10 @@ static void main_loop(void *arg)
   mhz19c_measure_thread(&pt_mhz19c_measure, ticks);
   display_thread(&pt_display, ticks);
   button_thread(&pt_button, ticks);
-  if (mgos_sys_config_get_push_url() != NULL) {
+  if (mgos_sys_config_get_push_url() != NULL)
     http_push_thread(&pt_http_push, ticks);
-  }
+  if (mgos_sys_config_get_mqtt_server() != NULL)
+    mqtt_push_thread(&pt_mqtt_push, ticks);
 }
 
 enum mgos_app_init_result mgos_app_init(void)
@@ -359,9 +421,17 @@ enum mgos_app_init_result mgos_app_init(void)
   PT_INIT(&pt_mhz19c_measure);
   PT_INIT(&pt_button);
   PT_INIT(&pt_http_push);
+  PT_INIT(&pt_mqtt_push);
 
   // http handler
   mgos_register_http_endpoint("/api/sensor/values", get_sensor_data, NULL);
+
+  // mqtt subscription
+  /*
+  char topic[100];
+  snprintf(topic, sizeof(topic), "/miefalarm/%s/values", mgos_sys_config_get_device_id());
+  mgos_mqtt_sub(topic, mqtt_handler, NULL);
+  */
 
   // start main
   mgos_set_timer(MAIN_LOOP_TICK_MS, MGOS_TIMER_REPEAT, main_loop, NULL);

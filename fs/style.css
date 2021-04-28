@@ -355,11 +355,23 @@ input[type=text] {
 
 .form-control {
     margin: 0.5em 0;
+    margin-bottom: 36px;
 }
 
-.form label {
+.form-control input{
+    width: 80%;
+}
+
+.form-control label {
+    /*
     min-width: 8em;
     display: inline-block;
+    */
+    transform: scale(0.75) translate(0px, -35px);
+    position: absolute;
+    font-weight: 500;
+    font-size: 20px;
+    transform-origin: 0% 0%;
 }
 
 #result {
