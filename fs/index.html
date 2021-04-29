@@ -437,8 +437,17 @@
                                 <button id="btn_save_config" class="btn btn-sm btn-c" onclick="saveConfig()" style="float:right" disabled>Save settings</button>
                             </div>
                             <div class="card-body">
-                                <form class="row form">
-                                    <div class="col c3">
+                                <div class="row form">
+                                    <div class="col c4">
+                                        <h3 class="sec-title">
+                                            General
+                                        </h3>
+                                        <div class="form-control">
+                                            <label for="admin_pass">Admin Password:</label>
+                                            <input type="password" class="smooth" id="admin_pass" minlength="8" autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="col c4">
                                         <h3 class="sec-title">
                                             WiFi Connection
                                         </h3>
@@ -448,12 +457,12 @@
                                         </div>
                                         <div class="form-control">
                                             <label for="wifi_pass">Password:</label>
-                                            <input type="password" class="smooth" id="wifi_pass" minlength="8">
+                                            <input type="password" class="smooth" id="wifi_pass" minlength="8" autocomplete="off">
                                         </div>
                                     </div>
-                                </form>
-                                <form class="row form">
-                                    <div class="col c3">
+                                </div>
+                                <div class="row form">
+                                    <div class="col c4">
                                         <h3 class="sec-title">
                                             Sensor Data Push
                                         </h3>
@@ -462,11 +471,16 @@
                                             <input type="number" class="smooth" id="push_interval" min="0" size="5" style="width:50px;">&nbsp;seconds
                                         </div>
                                         <div class="form-control">
-                                            <label for="push_url">HTTP Endpoint:</label>
+                                            <label for="cloud_device_url">IOT Cloud Device URL:</label>
+                                            <input type="url" class="smooth" id="cloud_device_url" readonly>
+                                            <button id="btn_create_device_url" class="btn btn-sm btn-c" onclick="createNewDeviceURL()">Change</button>
+                                        </div>
+                                        <div class="form-control">
+                                            <label for="push_url">Custom HTTP Endpoint URL:</label>
                                             <input type="url" class="smooth" id="push_url" placeholder="https://example.com/events" pattern="https://.*" size="30">
                                         </div>
                                     </div>
-                                    <div class="col c3">
+                                    <div class="col c4">
                                         <h3 class="sec-title">
                                             MQTT
                                         </h3>
@@ -486,19 +500,12 @@
                                             <label for="mqtt_pass">Password:</label>
                                             <input type="text" class="smooth" id="mqtt_pass" size="30">
                                         </div>
-                                    </div>
-                                </form>
-                                <form class="row form">
-                                    <div class="col c3">
-                                        <h3 class="sec-title">
-                                            General
-                                        </h3>
                                         <div class="form-control">
-                                            <label for="admin_pass">Admin Password:</label>
-                                            <input type="password" class="smooth" id="admin_pass" minlength="8">
+                                            <label for="mqtt_topic">Topic:</label>
+                                            <input type="text" class="smooth" id="mqtt_topic" size="30" placeholder="devices/%s/events">
                                         </div>
                                     </div>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -511,20 +518,23 @@
         const page_dashboard = document.getElementById("dashboard")
         const page_settings = document.getElementById("settings")
 
+        const input_admin_pass = document.getElementById("admin_pass")
+
         const input_wifi_ssid = document.getElementById("wifi_ssid")
         const input_wifi_pass = document.getElementById("wifi_pass")
 
         const input_push_interval = document.getElementById("push_interval")
         const input_push_url = document.getElementById("push_url")
+        const input_cloud_device_url = document.getElementById("cloud_device_url")
 
         const input_mqtt_broker = document.getElementById("mqtt_broker")
         const input_mqtt_client_id = document.getElementById("mqtt_client_id")
         const input_mqtt_user = document.getElementById("mqtt_user")
         const input_mqtt_pass = document.getElementById("mqtt_pass")
-
-        const input_admin_pass = document.getElementById("admin_pass")
+        const input_mqtt_topic = document.getElementById("mqtt_topic")
 
         const btn_save_config = document.getElementById("btn_save_config")
+        const btn_create_device_url = document.getElementById("btn_create_device_url")
 
         const textFields = {
             co2: document.getElementById("currentCO2"),
@@ -612,7 +622,8 @@
                     server: input_mqtt_broker.value,
                     client_id: input_mqtt_client_id.value || "",
                     user: input_mqtt_user.value || "",
-                    pass: input_mqtt_pass.value || ""
+                    pass: input_mqtt_pass.value || "",
+                    topic: input_mqtt_topic.value || ""
                 }
             }
             if (input_admin_pass.value) {
@@ -652,8 +663,24 @@
                 input_mqtt_client_id.value = config.mqtt.client_id
                 input_mqtt_user.value = config.mqtt.user
                 input_mqtt_pass.value = config.mqtt.pass
+                input_mqtt_topic.value = config.mqtt.topic
                 input_admin_pass.value = config.admin.pass
+                if (config.auth.public_key) {
+                    input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}/`
+                }
                 await wifiScan()
+            }
+        }
+
+        async function createNewDeviceURL() {
+            if (confirm("By changing the device URL, all settings in your IOT Cloud will be lost! Do you really want to change the device URL?")) {
+                resp = await fetch("/api/auth/keys/create", {
+                    method: "POST"
+                })
+                if (resp.status == 200) {
+                    let data = await resp.json()
+                    input_cloud_device_url.value = `https://miefalarm.de/devices/${data.public_key}/`
+                }
             }
         }
 

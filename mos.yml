@@ -38,12 +38,15 @@ config_schema:
   - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
   - ["push.interval", "i", 10, { title: "Push interval in seconds" }]
   - ["admin.pass", "s", "admin", { title: "Password for device settings" }]
-  - ["mqtt.enable", true]
-  - ["mqtt.server", "broker.losant.com:1883"]
+  - ["mqtt.enable", "b", true, { title: "Enable MQTT" }]
+  - ["mqtt.server", "s", "broker.losant.com:1883", { title: "MQTT Broker address" }]
   #- ["mqtt.ssl_ca_cert", "ca.pem"]
-  - ["mqtt.client_id", "6089306c6609710007e6f733"]
-  - ["mqtt.user", "4cfca46e-1901-4fdd-91b0-3a78b11a3881"]
-  - ["mqtt.pass", "523946caad055651299fa459555d92029d25e8232e1ba3ff195eb4679cc412b3"]
+  - ["mqtt.client_id", "s", "6089306c6609710007e6f733", { title: "Custom ID for this device" }]
+  - ["mqtt.user", "s", "4cfca46e-1901-4fdd-91b0-3a78b11a3881", { title: "User for MQTT authentication" }]
+  - ["mqtt.pass", "s", "523946caad055651299fa459555d92029d25e8232e1ba3ff195eb4679cc412b3", { title: "Password for MQTT authentication" }]
+  - ["mqtt.topic", "s", "losant/%s/state", { title: "Topic under which MQTT events should be published (Placeholder %s will be replaced by mqtt.client_id)" }]
+  - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
+  - ["auth.public_key", "s", "", { title: "Device authentication public key" }]
 
 includes:
   - libs
