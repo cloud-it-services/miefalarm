@@ -446,6 +446,10 @@
                                             <label for="admin_pass">Admin Password:</label>
                                             <input type="password" class="smooth" id="admin_pass" minlength="8" autocomplete="off">
                                         </div>
+                                        <div class="form-control">
+                                            <label for="co2_threshold_critical">Critical CO2 ppm value:</label>
+                                            <input type="number" class="smooth" id="co2_threshold_critical" min="0" max="5000" style="width:70px;">
+                                        </div>
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
@@ -468,7 +472,7 @@
                                         </h3>
                                         <div class="form-control">
                                             <label for="push_interval">Interval:</label>
-                                            <input type="number" class="smooth" id="push_interval" min="0" size="5" style="width:50px;">&nbsp;seconds
+                                            <input type="number" class="smooth" id="push_interval" min="0" size="5" style="width:70px;">&nbsp;seconds
                                         </div>
                                         <div class="form-control">
                                             <label for="cloud_device_url">IOT Cloud Device URL:</label>
@@ -519,6 +523,7 @@
         const page_settings = document.getElementById("settings")
 
         const input_admin_pass = document.getElementById("admin_pass")
+        const input_co2_threshold_critical = document.getElementById("co2_threshold_critical")
 
         const input_wifi_ssid = document.getElementById("wifi_ssid")
         const input_wifi_pass = document.getElementById("wifi_pass")
@@ -599,7 +604,8 @@
                     wifi: {},
                     push: {},
                     mqtt: {},
-                    admin: {}
+                    admin: {},
+                    co2: {}
                 }
             }
             if (input_wifi_pass.value) {
@@ -614,7 +620,7 @@
                 pl.config.push.url = input_push_url.value
             }
             if (input_push_interval.value) {
-                pl.config.push.interval = input_push_interval.value
+                pl.config.push.interval = parseInt(input_push_interval.value)
             }
             if (input_mqtt_broker.value) {
                 pl.config.mqtt = {
@@ -630,6 +636,11 @@
                 pl.config.admin.pass = input_admin_pass.value
             }
 
+            if (input_co2_threshold_critical.value) {
+                pl.config.co2.ppm = {}
+                pl.config.co2.ppm.critical = parseInt(input_co2_threshold_critical.value)
+            }
+
             let resp = await fetch("/rpc/Config.Set", {
                 method: "POST",
                 body: JSON.stringify(pl),
@@ -639,7 +650,6 @@
                 return
             }
 
-            /*
             resp = await fetch("/rpc/Config.Save", {
               method: "POST",
               body: JSON.stringify({
@@ -650,7 +660,6 @@
               console.error("save wifi config failed")
               return
             }
-            */
         }
 
         async function onSettingsClicked() {
@@ -665,6 +674,8 @@
                 input_mqtt_pass.value = config.mqtt.pass
                 input_mqtt_topic.value = config.mqtt.topic
                 input_admin_pass.value = config.admin.pass
+                input_co2_threshold_critical.value = config.co2.ppm.critical
+                
                 if (config.auth.public_key) {
                     input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}/`
                 }
@@ -761,9 +772,10 @@
 
         var cycleCount = 0;
         async function updateDashboard() {
-            resp = await fetch("/api/sensor/values")
+            resp = await fetch("/api/sensor/state")
             if (resp.status == 200) {
                 let data = await resp.json()
+                data = data.data;
                 let label = new Date().toLocaleTimeString().substr(0, 5)
                 for (d in data) {
                     if (d === "calibrating") {
@@ -780,7 +792,19 @@
                         chartData[d].series[0].push(data[d])
                         chartData[d].series[0].length > 100 && chartData[d].series[0].shift()
                         if (getComputedStyle(page_dashboard).display !== "none") {
-                            charts[d].update(chartData[d])
+                            let options = null
+                            if (d === "co2") {
+                                try {
+                                    options = {
+                                        plugins: [
+                                            Chartist.plugins.ctThreshold({
+                                                threshold: config.co2.ppm.critical
+                                            })
+                                        ]
+                                    }
+                                } catch (e) {}
+                            }
+                            options ? charts[d].update(chartData[d],options, true) : charts[d].update(chartData[d])
                         }
                     }
                 }

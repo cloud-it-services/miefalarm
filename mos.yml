@@ -20,6 +20,11 @@ config_schema:
   - ["debug.level", "i", 3, { title: "Log level 0..error - 3..debug" }]
   - ["dht.pin", "i", 23, { title: "DHT 11 GPIO PIN" }]
   - ["mhz19c.hd.pin", "i", 21, { title: "MH-Z19c HD GPIO PIN" }]
+  - ["led.r.pin", "i", 34, { title: "Red LED GPIO PIN" }]
+  - ["led.y.pin", "i", 35, { title: "Yellow LED GPIO PIN" }]
+  - ["led.g.pin", "i", 32, { title: "Green LED GPIO PIN" }]
+  - ["co2.ppm.critical", "i", 2000, { title: "Critical CO2 ppm value" }]
+  - ["co2.ppm.warn", "i", 1000, { title: "Warning CO2 ppm value" }]
   - ["button.pin", "i", 0, { title: "Boot Button GPIO PIN" }]
   - ["rpc.auth_domain", "s", "settings",{title: "Realm to use for digest authentication"}]
   - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
@@ -47,6 +52,7 @@ config_schema:
   - ["mqtt.topic", "s", "losant/%s/state", { title: "Topic under which MQTT events should be published (Placeholder %s will be replaced by mqtt.client_id)" }]
   - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
   - ["auth.public_key", "s", "", { title: "Device authentication public key" }]
+  - ["cloud.enable", "b", true, { title: "Enable IOT Cloud data push" }]
 
 includes:
   - libs

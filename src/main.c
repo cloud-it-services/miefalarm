@@ -7,6 +7,11 @@
 #include "uECC/uECC.h"
 #include "uECC/uECC.c"
 
+#include "mbedtls/sha256.h" /* SHA-256 only */
+//#include "mbedtls/md.h"     /* generic interface */
+//#include "mbedtls/debug.h"
+//#include "mbedtls/platform.h"
+ 
 #define UART_NO 2
 #define MHZ19_DATA_LEN 9
 #define MAIN_LOOP_TICK_MS 1
@@ -21,10 +26,11 @@
 #define MHZ19C_ABC_MODE_OFF 0x00 // ABC mode off
 
 // signature
-#define CHALLENGE_LEN 30
-#define PUBLIC_KEY_LEN 40
-#define PRIVATE_KEY_LEN 21
-#define SIGNATURE_LEN 40 // for curve secp160r1 (twice as curve length)
+#define HASH_LEN 32
+#define CURVE uECC_secp256k1()
+#define PRIVATE_KEY_LEN uECC_curve_private_key_size(CURVE)
+#define PUBLIC_KEY_LEN uECC_curve_public_key_size(CURVE)
+#define SIGNATURE_LEN uECC_curve_public_key_size(CURVE)
 
 static struct mgos_dht *s_dht = NULL;
 static uint64_t last_tick = 0;
@@ -39,8 +45,8 @@ static struct pt pt_display;
 static struct pt pt_button;
 static struct pt pt_mhz19c_calibrate;
 static struct pt pt_mhz19c_measure;
-static struct pt pt_http_push;
-static struct pt pt_mqtt_push;
+static struct pt pt_data_push;
+static struct pt pt_led;
 
 /*
 static void saveFile(char *filename, char *data)
@@ -78,7 +84,7 @@ typedef struct
 int json(struct json_out *out, va_list *ap)
 {
     sensor_data *t = va_arg(*ap, sensor_data *);
-    return json_printf(out, "{temperature: %d, humidity: %d, co2: %d, calibrating: %B}", t->temperature, t->humidity, t->co2, t->calibrating);
+    return json_printf(out, "{temperature:%d,humidity:%d,co2:%d,calibrating:%B}", t->temperature, t->humidity, t->co2, t->calibrating);
 }
 
 static void sensor_data_to_json(char *buf, uint8_t len)
@@ -89,36 +95,43 @@ static void sensor_data_to_json(char *buf, uint8_t len)
 }
 
 /*
-static void hex_decode(const char *in, size_t len, uint8_t *out)
+char* hex_encode(const unsigned char *bin, size_t len)
 {
-    unsigned int i, t, hn, ln;
-    for (t = 0, i = 0; i < len; i += 2, ++t)
-    {
-        hn = in[i] > '9' ? in[i] - 'A' + 10 : in[i] - '0';
-        ln = in[i + 1] > '9' ? in[i + 1] - 'A' + 10 : in[i + 1] - '0';
-        out[t] = (hn << 4) | ln;
-    }
+	char   *out;
+	size_t  i;
+
+	if (bin == NULL || len == 0)
+		return NULL;
+
+	out = malloc(len*2+1);
+	for (i=0; i<len; i++) {
+		out[i*2]   = "0123456789ABCDEF"[bin[i] >> 4];
+		out[i*2+1] = "0123456789ABCDEF"[bin[i] & 0x0F];
+	}
+	out[len*2] = '\0';
+
+	return out;
 }
 
-static void hex_encode(unsigned char *bytes, int bytesLength, char *dest)
+void hex_decode(const char *in, size_t len, uint8_t *out)
 {
-    char lookup[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    for (int i = 0; i < bytesLength; i++)
-    {
-        dest[2 * i] = lookup[(bytes[i] >> 4) & 0xF];
-        dest[2 * i + 1] = lookup[bytes[i] & 0xF];
-    }
-    dest[2 * bytesLength] = 0;
+	unsigned int i, t, hn, ln;
+
+	for (t = 0, i = 0; i < len; i += 2, ++t)
+	{
+
+		hn = in[i] > '9' ? in[i] - 'A' + 10 : in[i] - '0';
+		ln = in[i + 1] > '9' ? in[i + 1] - 'A' + 10 : in[i + 1] - '0';
+
+		out[t] = (hn << 4) | ln;
+	}
 }
 */
 
-char *base64Encoder(uint8_t input_str[], int len_str)
+static void base64_encode(uint8_t *input_str, int len_str, uint8_t* res_str)
 {
     // Character set of base64 encoding scheme
     char char_set[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
-
-    // Resultant string
-    char *res_str = (char *)malloc(100 * sizeof(char));
 
     int index, no_of_bits = 0, padding = 0, val = 0, count = 0, temp;
     int i, j, k = 0;
@@ -173,22 +186,18 @@ char *base64Encoder(uint8_t input_str[], int len_str)
     }
 
     // padding is done here
+    /*
     for (i = 1; i <= padding; i++)
     {
         res_str[k++] = '=';
     }
+    */
 
     res_str[k] = '\0';
-
-    return res_str;
 }
 
-char *base64Decoder(char encoded[], int len_str)
+static void base64_decode(uint8_t *encoded, int len_str, uint8_t *decoded)
 {
-    char *decoded_string;
-
-    decoded_string = (char *)malloc(sizeof(char) * 100);
-
     int i, j, k = 0;
 
     // stores the bitstream.
@@ -214,10 +223,10 @@ char *base64Decoder(char encoded[], int len_str)
                 count_bits += 6;
             }
 
-            /* Finding the position of each encoded 
-            character in char_set 
-            and storing in "num", use OR 
-            '|' operator to store bits.*/
+            // Finding the position of each encoded 
+            //character in char_set 
+            //and storing in "num", use OR 
+            //'|' operator to store bits.
 
             // encoded[i + j] = 'E', 'E' - 'A' = 5
             // 'E' has 5th position in char_set.
@@ -235,20 +244,22 @@ char *base64Decoder(char encoded[], int len_str)
                 num = num | (encoded[i + j] - '0' + 52);
 
             // '+' occurs in 62nd position in char_set.
-            else if (encoded[i + j] == '+')
+            else if (encoded[i + j] == '_')
                 num = num | 62;
 
             // '/' occurs in 63rd position in char_set.
-            else if (encoded[i + j] == '/')
+            else if (encoded[i + j] == '-')
                 num = num | 63;
 
             // ( str[i + j] == '=' ) remove 2 bits
             // to delete appended bits during encoding.
+            /*
             else
             {
                 num = num >> 2;
                 count_bits -= 2;
             }
+            */
         }
 
         while (count_bits != 0)
@@ -256,14 +267,12 @@ char *base64Decoder(char encoded[], int len_str)
             count_bits -= 8;
 
             // 255 in binary is 11111111
-            decoded_string[k++] = (num >> count_bits) & 255;
+            decoded[k++] = (num >> count_bits) & 255;
         }
     }
 
     // place NULL character to mark end of string.
-    decoded_string[k] = '\0';
-
-    return decoded_string;
+    decoded[k] = '\0';
 }
 
 int RNG(uint8_t *dest, unsigned size)
@@ -277,32 +286,74 @@ int RNG(uint8_t *dest, unsigned size)
     return 1;
 }
 
+static uint8_t create_signature(char *message, uint8_t *sig)
+{
+
+    // Load private key
+    const unsigned char *message_buffer = (const unsigned char *) message;
+    const char *privKeyBase64 = mgos_sys_config_get_auth_private_key();
+    uint8_t privKey[PRIVATE_KEY_LEN];
+    base64_decode((uint8_t*) privKeyBase64, strlen(privKeyBase64), privKey);
+
+    uint8_t hash[HASH_LEN];
+    mbedtls_sha256(message_buffer, strlen(message), hash, 0);
+
+    char debugBuf[2*HASH_LEN];
+    char *ptr = &debugBuf[0];
+    for (size_t i = 0; i < HASH_LEN; i++) {
+        ptr += sprintf(ptr, "%02X", hash[i]);
+    }
+    LOG(LL_INFO, ("*** message: %s", message));
+    LOG(LL_INFO, ("*** hash: %s", debugBuf));
+
+    // Create signature
+    uECC_set_rng(&RNG);
+    const struct uECC_Curve_t *curve = CURVE;
+    if (!uECC_sign(privKey, hash, HASH_LEN, sig, curve))
+    {
+        LOG(LL_ERROR, ("signature creation failed"));
+        return 1;
+    }
+    return 0;
+}
+
 static void create_keys()
 {
     LOG(LL_INFO, ("generate keys"));
 
     uint8_t priv[PRIVATE_KEY_LEN];
     uint8_t pub[PUBLIC_KEY_LEN];
-    //char privKeyHex[2 * PRIVATE_KEY_LEN * sizeof(char)];
-    //char pubKeyHex[2 * PUBLIC_KEY_LEN * sizeof(char)];
+    uint8_t privKeyBase64[100];
+    uint8_t pubKeyBase64[100];
 
     uECC_set_rng(RNG);
-    const struct uECC_Curve_t *curve = uECC_secp160r1();
+    const struct uECC_Curve_t *curve = CURVE;
     uECC_make_key(pub, priv, curve);
 
-    //hex_encode(pub, sizeof(pub), pubKeyHex);
-    //hex_encode(priv, sizeof(priv), privKeyHex);
-    char *privKeyBase64 = base64Encoder(priv, sizeof(priv));
-    char *pubKeyBase64 = base64Encoder(pub, sizeof(pub));
+    /*
+    LOG(LL_INFO, ("*** private key %d", sizeof(priv)));
+    LOG(LL_INFO, ("*** public key %d", sizeof(pub)));
+    char* privKeyHex = hex_encode(priv, sizeof(priv));
+    char* pubKeyHex = hex_encode(pub, sizeof(pub));
+    */
+    base64_encode(priv, sizeof(priv), privKeyBase64);
+    base64_encode(pub, sizeof(pub), pubKeyBase64);
 
-    LOG(LL_INFO, ("private key %s", privKeyBase64));
-    LOG(LL_INFO, ("public key %s", pubKeyBase64));
+    //LOG(LL_INFO, ("*** private key hex: %s", privKeyHex));
+    //LOG(LL_INFO, ("*** public key hex: %s", pubKeyHex));
+    LOG(LL_INFO, ("*** private key: %s", privKeyBase64));
+    LOG(LL_INFO, ("*** public key: %s", pubKeyBase64));
 
-    mgos_sys_config_set_auth_private_key(privKeyBase64);
-    mgos_sys_config_set_auth_public_key(pubKeyBase64);
+    mgos_sys_config_set_auth_private_key((const char*) privKeyBase64);
+    mgos_sys_config_set_auth_public_key((const char*) pubKeyBase64);
+    //mgos_sys_config_set_auth_private_key(privKeyHex);
+    //mgos_sys_config_set_auth_public_key(pubKeyHex);
+    //free(privKeyHex);
+    //free(pubKeyHex);
+
     char *err = NULL;
     save_cfg(&mgos_sys_config, &err); /* Writes conf9.json */
-    LOG(LL_INFO, ("Saving configuration: %s\n", err ? err : "no error"));
+    LOG(LL_DEBUG, ("Saving configuration: %s\n", err ? err : "no error"));
     free(err);
 }
 
@@ -323,8 +374,10 @@ static void http_handler_sensor_data(struct mg_connection *c, int ev, void *p, v
     if (ev != MG_EV_HTTP_REQUEST)
         return;
 
-    char buf[200];
-    sensor_data_to_json(buf, sizeof(buf));
+    char data[200];
+    char buf[sizeof(data) + 100];
+    sensor_data_to_json(data, sizeof(data));
+    snprintf(buf, sizeof(buf), "{\"data\":%s}", data);
     send_response(c, buf);
 }
 
@@ -343,19 +396,32 @@ static void http_handler_auth_keys(struct mg_connection *c, int ev, void *p, voi
  * HTTP API Handler END
  */
 
-static void post_sensor_data()
+static uint8_t post_sensor_data(const char *url, bool sign_data)
 {
-    const char *url = mgos_sys_config_get_push_url();
-    if (url == NULL)
-        return;
+    char data[200];
+    sensor_data_to_json(data, sizeof(data));
 
-    char buf[200];
-    sensor_data_to_json(buf, sizeof(buf));
+    char pl[sizeof(data) + 100];
+    if (sign_data)
+    {
+        uint8_t sig[SIGNATURE_LEN];
+        create_signature(data, sig);
+        //char *sigBase64 = base64_encode(sig, sizeof(sig));
+        char sigBuf[2*sizeof(sig)];
+        char *ptr = &sigBuf[0];
+        for (size_t i = 0; i < sizeof(sig); i++) {
+            ptr += sprintf(ptr, "%02X", sig[i]);
+        }
+        snprintf(pl, sizeof(pl), "{\"data\":%s,\"signature\":\"%s\",\"id\":\"%ld\"}", data, sigBuf, (long)mgos_uptime_micros());
+    } else {
+        snprintf(pl, sizeof(pl), "{\"data\":%s", data);
+    }
+
+    LOG(LL_DEBUG, ("*** http post pl: %s", pl));
+
     struct mg_mgr *mgr = mgos_get_mgr();
-    struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", buf);
-
-    if (conn == NULL)
-        LOG(LL_ERROR, ("Failed to connect to %s", url));
+    struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", pl);
+    return conn != NULL ? 0 : 1;
 }
 
 uint8_t getCRC(uint8_t *data)
@@ -398,7 +464,7 @@ void mhz19c_receive_response(uint8_t *data)
 {
     memset(data, 0, MHZ19_DATA_LEN);
     mgos_uart_read(UART_NO, data, MHZ19_DATA_LEN);
-    LOG(LL_INFO, ("mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]));
+    LOG(LL_DEBUG, ("mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]));
     uint8_t crc = getCRC(data);
     if (data[8] != crc)
         LOG(LL_WARN, ("***** CRC error *****\n"));
@@ -409,7 +475,7 @@ void mhz19c_send_command(uint8_t command, uint16_t data)
     uint8_t cmd_buffer[MHZ19_DATA_LEN];
     mhz19c_build_command(command, data, cmd_buffer);
 
-    LOG(LL_INFO, ("mhz19c send: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", cmd_buffer[0], cmd_buffer[1], cmd_buffer[2], cmd_buffer[3], cmd_buffer[4], cmd_buffer[5], cmd_buffer[6], cmd_buffer[7], cmd_buffer[8]));
+    LOG(LL_DEBUG, ("mhz19c send: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", cmd_buffer[0], cmd_buffer[1], cmd_buffer[2], cmd_buffer[3], cmd_buffer[4], cmd_buffer[5], cmd_buffer[6], cmd_buffer[7], cmd_buffer[8]));
     mgos_uart_flush(UART_NO);
     mgos_uart_write(UART_NO, cmd_buffer, MHZ19_DATA_LEN);
     mgos_uart_flush(UART_NO);
@@ -531,6 +597,39 @@ int mhz19c_calibrate_thread(struct pt *pt, uint16_t ticks)
     PT_END(pt);
 }
 
+int led_thread(struct pt *pt, uint16_t ticks)
+{
+    static uint16_t timer;
+    timer += ticks;
+
+    PT_BEGIN(pt);
+
+    while (1)
+    {
+        if (ppm > mgos_sys_config_get_co2_ppm_critical()) {
+            LOG(LL_DEBUG, ("*** RED LED ***"));
+            mgos_gpio_write(mgos_sys_config_get_led_r_pin(), HIGH);
+            mgos_gpio_write(mgos_sys_config_get_led_y_pin(), LOW);
+            mgos_gpio_write(mgos_sys_config_get_led_g_pin(), LOW);
+        } else if (ppm > mgos_sys_config_get_co2_ppm_warn()) {
+            LOG(LL_DEBUG, ("*** YELLOW LED ***"));
+            mgos_gpio_write(mgos_sys_config_get_led_r_pin(), LOW);
+            mgos_gpio_write(mgos_sys_config_get_led_y_pin(), HIGH);
+            mgos_gpio_write(mgos_sys_config_get_led_g_pin(), LOW);
+        } else {
+            LOG(LL_DEBUG, ("*** GREEN LED ***"));
+            mgos_gpio_write(mgos_sys_config_get_led_r_pin(), LOW);
+            mgos_gpio_write(mgos_sys_config_get_led_y_pin(), LOW);
+            mgos_gpio_write(mgos_sys_config_get_led_g_pin(), HIGH);
+        }
+
+        timer = 0;
+        PT_WAIT_UNTIL(pt, timer >= 1000);
+    }
+
+    PT_END(pt);
+}
+
 int button_thread(struct pt *pt, uint16_t ticks)
 {
     static uint16_t timer;
@@ -556,7 +655,7 @@ int button_thread(struct pt *pt, uint16_t ticks)
     PT_END(pt);
 }
 
-int mqtt_push_thread(struct pt *pt, uint16_t ticks)
+int data_push_thread(struct pt *pt, uint16_t ticks)
 {
     static uint16_t timer;
     timer += ticks;
@@ -565,32 +664,39 @@ int mqtt_push_thread(struct pt *pt, uint16_t ticks)
 
     while (1)
     {
-        char topic[100];
-        snprintf(topic, sizeof(topic), mgos_sys_config_get_mqtt_topic(), mgos_sys_config_get_mqtt_client_id());
-
-        char buf[200];
+        static char buf[200];
         sensor_data_to_json(buf, sizeof(buf));
 
-        uint16_t res = mgos_mqtt_pubf(topic, 0, false, "{data:%s}", buf);
-        LOG(LL_INFO, ("mqtt success: %d\n", res));
+        // mqtt
+        if (mgos_sys_config_get_mqtt_server() != NULL)
+        {
+            char topic[100];
+            snprintf(topic, sizeof(topic), mgos_sys_config_get_mqtt_topic(), mgos_sys_config_get_mqtt_client_id());
+            uint16_t res = mgos_mqtt_pubf(topic, 0, false, "{data:%s}", buf);
+            LOG(LL_DEBUG, ("mqtt success: %d\n", res));
+            timer = 0;
+            PT_WAIT_UNTIL(pt, timer >= 1);
+        }
 
-        timer = 0;
-        PT_WAIT_UNTIL(pt, timer >= mgos_sys_config_get_push_interval() * 1000);
-    }
+        // http
+        const char *http_push_url = mgos_sys_config_get_push_url();
+        if (http_push_url != NULL)
+        {
+            post_sensor_data(http_push_url, false);
+            timer = 0;
+            PT_WAIT_UNTIL(pt, timer >= 1);
+        }
 
-    PT_END(pt);
-}
+        // iot cloud
+        if (mgos_sys_config_get_cloud_enable())
+        {
+            char url[256];
+            snprintf(url, sizeof(url), "https://miefalarm.de/api/devices/%s/state", mgos_sys_config_get_auth_public_key());
+            post_sensor_data(url, true);
+            timer = 0;
+            PT_WAIT_UNTIL(pt, timer >= 1);
+        }
 
-int http_push_thread(struct pt *pt, uint16_t ticks)
-{
-    static uint16_t timer;
-    timer += ticks;
-
-    PT_BEGIN(pt);
-
-    while (1)
-    {
-        post_sensor_data();
         timer = 0;
         PT_WAIT_UNTIL(pt, timer >= mgos_sys_config_get_push_interval() * 1000);
     }
@@ -609,14 +715,16 @@ static void main_loop(void *arg)
     mhz19c_measure_thread(&pt_mhz19c_measure, ticks);
     display_thread(&pt_display, ticks);
     button_thread(&pt_button, ticks);
-    if (mgos_sys_config_get_push_url() != NULL)
-        http_push_thread(&pt_http_push, ticks);
-    if (mgos_sys_config_get_mqtt_server() != NULL)
-        mqtt_push_thread(&pt_mqtt_push, ticks);
+    led_thread(&pt_led, ticks);
+    data_push_thread(&pt_data_push, ticks);
 }
 
 enum mgos_app_init_result mgos_app_init(void)
 {
+    LOG(LL_INFO, ("PRIVATE_KEY_LEN: %d", PRIVATE_KEY_LEN));
+    LOG(LL_INFO, ("PUBLIC_KEY_LEN: %d", PUBLIC_KEY_LEN));
+    LOG(LL_INFO, ("SIGNATURE_LEN: %d", SIGNATURE_LEN));
+
     //read_config();
 
     // init dht
@@ -627,6 +735,11 @@ enum mgos_app_init_result mgos_app_init(void)
     if (!mhz19c_init())
         return MGOS_APP_INIT_ERROR;
 
+    // init LED pins
+    mgos_gpio_set_mode(mgos_sys_config_get_led_r_pin(), MGOS_GPIO_MODE_OUTPUT);
+    mgos_gpio_set_mode(mgos_sys_config_get_led_y_pin(), MGOS_GPIO_MODE_OUTPUT);
+    mgos_gpio_set_mode(mgos_sys_config_get_led_g_pin(), MGOS_GPIO_MODE_OUTPUT);
+
     // create keys
     if (mgos_sys_config_get_auth_public_key() == NULL)
         create_keys();
@@ -635,17 +748,17 @@ enum mgos_app_init_result mgos_app_init(void)
     PT_INIT(&pt_dht);
     PT_INIT(&pt_mhz19c_measure);
     PT_INIT(&pt_button);
-    PT_INIT(&pt_http_push);
-    PT_INIT(&pt_mqtt_push);
+    PT_INIT(&pt_data_push);
+    PT_INIT(&pt_led);
 
     // http handler
-    mgos_register_http_endpoint("/api/sensor/values", http_handler_sensor_data, NULL);
+    mgos_register_http_endpoint("/api/sensor/state", http_handler_sensor_data, NULL);
     mgos_register_http_endpoint("/api/auth/keys/create", http_handler_auth_keys, NULL); // TODO: restrict this path to authenticated user via acl (or using digest authentication)
 
     // mqtt subscription
     /*
     char topic[100];
-    snprintf(topic, sizeof(topic), "/miefalarm/%s/values", mgos_sys_config_get_device_id());
+    snprintf(topic, sizeof(topic), "/miefalarm/%s/state", mgos_sys_config_get_device_id());
     mgos_mqtt_sub(topic, mqtt_handler, NULL);
     */
 

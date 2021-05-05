@@ -632,7 +632,7 @@
 
     var cycleCount = 0;
     async function updateDashboard() {
-      resp = await fetch("/api/sensor/values")
+      resp = await fetch("/api/sensor/state")
       if (resp.status == 200) {
         let sensorData = await resp.json()
         if (sensorData) {
