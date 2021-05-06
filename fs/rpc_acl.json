@@ -1,5 +1,9 @@
 [
     {
+        "method": "Config.*",
+        "acl": "*"
+    },
+    {
         "method": "RPC.*",
         "acl": "*"
     },
