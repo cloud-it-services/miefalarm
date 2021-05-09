@@ -659,12 +659,14 @@ static void main_loop(void *arg)
     last_tick = now;
 
     // schedule threads
+    mgos_wdt_set_timeout(10);
     dht_thread(&pt_dht, ticks);
     mhz19c_measure_thread(&pt_mhz19c_measure, ticks);
     display_thread(&pt_display, ticks);
     button_thread(&pt_button, ticks);
     //led_thread(&pt_led, ticks);
     data_push_thread(&pt_data_push, ticks);
+    mgos_wdt_feed();
 }
 
 enum mgos_app_init_result mgos_app_init(void)
@@ -699,9 +701,9 @@ enum mgos_app_init_result mgos_app_init(void)
     mgos_gpio_set_mode(PIN_LED_RED, MGOS_GPIO_MODE_OUTPUT);
     mgos_gpio_set_mode(PIN_LED_YELLOW, MGOS_GPIO_MODE_OUTPUT);
     mgos_gpio_set_mode(PIN_LED_GREEN, MGOS_GPIO_MODE_OUTPUT);
-    mgos_gpio_write(PIN_LED_RED, LOW);
-    mgos_gpio_write(PIN_LED_YELLOW, LOW);
-    mgos_gpio_write(PIN_LED_GREEN, LOW);
+    mgos_gpio_write(PIN_LED_RED, HIGH);
+    mgos_gpio_write(PIN_LED_YELLOW, HIGH);
+    mgos_gpio_write(PIN_LED_GREEN, HIGH);
 
     //LOG(LL_DEBUG, ("--- 3 ---"));
 
@@ -728,6 +730,7 @@ enum mgos_app_init_result mgos_app_init(void)
     //LOG(LL_DEBUG, ("--- 6 ---"));
 
     // start main
+    mgos_wdt_enable();
     mgos_set_timer(MAIN_LOOP_TICK_MS, MGOS_TIMER_REPEAT, main_loop, NULL);
 
     //LOG(LL_DEBUG, ("--- 7 ---"));

@@ -45,7 +45,7 @@ config_schema:
   #- ["mqtt.ssl_ca_cert", "ca.pem"]
   - ["mqtt.client_id", "s", "60939bb9d0d6a90007fd7102", { title: "Custom ID for this device" }]
   - ["mqtt.user", "s", "7b8afdfd-75b1-4a97-a7f1-aea24d523cef", { title: "User for MQTT authentication" }]
-  - ["mqtt.pass", "s", "51e49d61641e44bc21841a51b403e052eb81a7a44193d5b6a7b1afdf94f82c35", { title: "Password for MQTT authentication" }]
+  - ["mqtt.pass", "s", "523946caad055651299fa459555d92029d25e8232e1ba3ff195eb4679cc412b3", { title: "Password for MQTT authentication" }]
   - ["mqtt.topic", "s", "losant/%s/state", { title: "Topic under which MQTT events should be published (Placeholder %s will be replaced by mqtt.client_id)" }]
   - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
   - ["auth.public_key", "s", "", { title: "Device authentication public key" }]

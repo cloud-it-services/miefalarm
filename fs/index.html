@@ -677,7 +677,7 @@
                 input_co2_threshold_critical.value = config.co2.ppm.critical
                 
                 if (config.auth.public_key) {
-                    input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}/`
+                    input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}`
                 }
                 await wifiScan()
             }
@@ -690,7 +690,7 @@
                 })
                 if (resp.status == 200) {
                     let data = await resp.json()
-                    input_cloud_device_url.value = `https://miefalarm.de/devices/${data.public_key}/`
+                    input_cloud_device_url.value = `https://miefalarm.de/devices/${data.public_key}`
                 }
             }
         }
