@@ -2,6 +2,7 @@
 #include "mgos_dht.h"
 #include "mgos_uart.h"
 #include "mgos_mqtt.h"
+//#include "mgos_ota_http_client.h"
 #include "pt/pt.h"
 #include "uECC/uECC.h"
 #include "uECC/uECC.c"
@@ -9,7 +10,8 @@
 #include "mgos_http_server.h"
 #endif
 
-#include "mbedtls/sha256.h" /* SHA-256 only */
+#include "mbedtls/sha256.h"
+#include "mbedtls/md5.h"
 //#include "mbedtls/md.h"     /* generic interface */
 //#include "mbedtls/debug.h"
 //#include "mbedtls/platform.h"
@@ -23,13 +25,13 @@
 #define PIN_BUTTON_CALIBRATE 0
 #define UART_NO 2
 #if CS_PLATFORM == CS_P_ESP8266
-    #define PIN_DHT 5
-    #define PIN_MHZ19C_HD 10
-    #define PIN_LED_RED 12
-    #define PIN_LED_YELLOW 14
-    #define PIN_LED_GREEN 10
-    #define PIN_BUTTON_CALIBRATE 0
-    #define UART_NO 0
+#define PIN_DHT 5
+#define PIN_MHZ19C_HD 10
+#define PIN_LED_RED 12
+#define PIN_LED_YELLOW 14
+#define PIN_LED_GREEN 10
+#define PIN_BUTTON_CALIBRATE 0
+#define UART_NO 0
 #endif
 
 #define MHZ19_DATA_LEN 9
@@ -51,6 +53,9 @@
 #define PUBLIC_KEY_LEN uECC_curve_public_key_size(CURVE)
 #define SIGNATURE_LEN uECC_curve_public_key_size(CURVE)
 
+// ota update
+#define WIFI_OTA_DOWNLOAD_TIME_SEC 60
+
 // threads
 static struct pt pt_dht;
 static struct pt pt_display;
@@ -67,8 +72,7 @@ static uint8_t humidity = 0;
 static uint16_t ppm = 0;
 static uint8_t calibrating = 0;
 
-/*
-static void saveFile(char *filename, char *data)
+static void save_file(char *filename, char *data)
 {
     FILE *fp = fopen(filename, "w+");
     if (fp == NULL)
@@ -77,13 +81,13 @@ static void saveFile(char *filename, char *data)
     fclose(fp);
 }
 
-static char *loadFile(char *filename, char *buffer)
+static char *load_file(char *filename, char *buffer)
 {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL)
     {
         LOG(LL_DEBUG, ("%s not found\n", filename));
-        return;
+        return NULL;
     }
     fseek(fp, 0, SEEK_END);
     uint16_t fSize = ftell(fp);
@@ -91,7 +95,6 @@ static char *loadFile(char *filename, char *buffer)
     fread(buffer, 1, fSize, fp);
     fclose(fp);
 }
-*/
 typedef struct
 {
     uint8_t temperature;
@@ -111,6 +114,12 @@ static void sensor_data_to_json(char *buf, uint8_t len)
     struct json_out out = JSON_OUT_BUF(buf, len);
     sensor_data sd = {temperature, humidity, ppm, calibrating};
     json_printf(&out, "%M", json, &sd);
+}
+
+static void hex_encode(uint8_t *input_str, uint16_t len_str, char *encoded)
+{
+    for (size_t i = 0; i < len_str; i++)
+        encoded += sprintf(encoded, "%02x", input_str[i]);
 }
 
 static void base64_encode(uint8_t *input_str, int len_str, uint8_t *encoded)
@@ -198,17 +207,18 @@ static uint8_t create_signature(char *message, uint8_t *sig)
 {
 
     // Load private key
-    const unsigned char *message_buffer = (const unsigned char *) message;
+    const unsigned char *message_buffer = (const unsigned char *)message;
     const char *privKeyBase64 = mgos_sys_config_get_auth_private_key();
     uint8_t privKey[PRIVATE_KEY_LEN];
-    base64_decode((uint8_t*) privKeyBase64, strlen(privKeyBase64), privKey);
+    base64_decode((uint8_t *)privKeyBase64, strlen(privKeyBase64), privKey);
 
     uint8_t hash[HASH_LEN];
     mbedtls_sha256(message_buffer, strlen(message), hash, 0);
 
-    char debugBuf[2*HASH_LEN];
+    char debugBuf[2 * HASH_LEN];
     char *ptr = &debugBuf[0];
-    for (size_t i = 0; i < HASH_LEN; i++) {
+    for (size_t i = 0; i < HASH_LEN; i++)
+    {
         ptr += sprintf(ptr, "%02X", hash[i]);
     }
     LOG(LL_DEBUG, ("*** message: %s", message));
@@ -243,8 +253,8 @@ static void create_keys()
     LOG(LL_INFO, ("*** private key: %s", privKeyBase64));
     LOG(LL_INFO, ("*** public key: %s", pubKeyBase64));
 
-    mgos_sys_config_set_auth_private_key((const char*) privKeyBase64);
-    mgos_sys_config_set_auth_public_key((const char*) pubKeyBase64);
+    mgos_sys_config_set_auth_private_key((const char *)privKeyBase64);
+    mgos_sys_config_set_auth_public_key((const char *)pubKeyBase64);
 
     char *err = NULL;
     save_cfg(&mgos_sys_config, &err); /* Writes conf9.json */
@@ -254,11 +264,26 @@ static void create_keys()
 
 static void send_response(struct mg_connection *c, char *data)
 {
-    mg_send_head(c, 200, strlen(data),
-                 "Cache: no-transform, no-cache\r\n"
-                 "Content-Type: application/json;charset=utf-8");
-    mg_printf(c, "%s", data);
+    if (data != NULL) {
+        mg_send_head(c, 200, strlen(data),
+                    "Cache: no-transform, no-cache\r\n"
+                    "Content-Type: application/json;charset=utf-8");
+        mg_printf(c, "%s", data);
+    } else {
+        mg_send_head(c, 200, 0, NULL);
+    }
     c->flags |= MG_F_SEND_AND_CLOSE;
+}
+
+static void md5_hash(uint8_t *hash, uint8_t *text, size_t text_len)
+{
+    mbedtls_md5_context ctx;
+    mbedtls_md5_init(&ctx);
+    mbedtls_md5_starts_ret(&ctx);
+    mbedtls_md5_update_ret(&ctx, text, text_len);
+
+    mbedtls_md5_finish_ret(&ctx, hash);
+    mbedtls_md5_free(&ctx);
 }
 
 /**
@@ -286,6 +311,27 @@ static void http_handler_auth_keys(struct mg_connection *c, int ev, void *p, voi
     char buf[200];
     snprintf(buf, sizeof(buf), "{\"public_key\":\"%s\"}", mgos_sys_config_get_auth_public_key());
     send_response(c, buf);
+}
+
+static void http_handler_auth_admin_pass(struct mg_connection *c, int ev, void *p, void *user_data)
+{
+    if (ev != MG_EV_HTTP_REQUEST)
+        return;
+
+    struct http_message *hm = (struct http_message *)p;
+    char body[1000];
+    char password[100];
+    uint8_t hash[16];
+    memcpy(body, hm->body.p,sizeof(body) - 1 < hm->body.len ? sizeof(body) - 1 : hm->body.len);
+    json_scanf(body, strlen(body), "{password:%Q}", password);
+    LOG(LL_INFO, ("change admin password to: %s", password));
+    md5_hash(hash, (uint8_t*) password, strlen(password));
+
+    char str_hash[2 * sizeof(hash)];
+    hex_encode(hash, sizeof(hash), str_hash);
+
+    LOG(LL_INFO, ("change admin password hash: %s", str_hash));
+    send_response(c, NULL);
 }
 /**
  * HTTP API Handler END
@@ -327,13 +373,12 @@ static uint8_t post_sensor_data(const char *url, bool sign_data)
     {
         uint8_t sig[SIGNATURE_LEN];
         create_signature(data, sig);
-        char sigBuf[2*sizeof(sig)];
-        char *ptr = &sigBuf[0];
-        for (size_t i = 0; i < sizeof(sig); i++) {
-            ptr += sprintf(ptr, "%02X", sig[i]);
-        }
+        char sigBuf[2 * sizeof(sig)];
+        hex_encode(sig, sizeof(sig), sigBuf);
         snprintf(pl, sizeof(pl), "{\"data\":%s,\"signature\":\"%s\",\"id\":\"%ld\"}", data, sigBuf, (long)mgos_uptime_micros());
-    } else {
+    }
+    else
+    {
         snprintf(pl, sizeof(pl), "{\"data\":%s", data);
     }
 
@@ -344,19 +389,25 @@ static uint8_t post_sensor_data(const char *url, bool sign_data)
     return conn != NULL ? 0 : 1;
 }
 
-void set_leds() {
+void set_leds()
+{
 
-    if (ppm > mgos_sys_config_get_co2_ppm_critical()) {
+    if (ppm > mgos_sys_config_get_thresholds_co2_critical())
+    {
         LOG(LL_INFO, ("*** RED LED ***"));
         mgos_gpio_write(PIN_LED_RED, HIGH);
         mgos_gpio_write(PIN_LED_YELLOW, LOW);
         mgos_gpio_write(PIN_LED_GREEN, LOW);
-    } else if (ppm > mgos_sys_config_get_co2_ppm_warn()) {
+    }
+    else if (ppm > mgos_sys_config_get_thresholds_co2_warn())
+    {
         LOG(LL_INFO, ("*** YELLOW LED ***"));
         mgos_gpio_write(PIN_LED_RED, LOW);
         mgos_gpio_write(PIN_LED_YELLOW, HIGH);
         mgos_gpio_write(PIN_LED_GREEN, LOW);
-    } else {
+    }
+    else
+    {
         LOG(LL_INFO, ("*** GREEN LED ***"));
         mgos_gpio_write(PIN_LED_RED, LOW);
         mgos_gpio_write(PIN_LED_YELLOW, LOW);
@@ -406,7 +457,8 @@ uint8_t mhz19c_receive_response(uint8_t *data)
     mgos_uart_read(UART_NO, data, MHZ19_DATA_LEN);
     LOG(LL_INFO, ("*** mhz19c receive: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]));
     uint8_t crc = getCRC(data);
-    if (data[8] != crc) {
+    if (data[8] != crc)
+    {
         LOG(LL_WARN, ("***** CRC error *****\n"));
         return 1;
     }
@@ -420,7 +472,7 @@ void mhz19c_send_command(uint8_t command, uint16_t data)
 
     LOG(LL_INFO, ("*** mhz19c send: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n", cmd_buffer[0], cmd_buffer[1], cmd_buffer[2], cmd_buffer[3], cmd_buffer[4], cmd_buffer[5], cmd_buffer[6], cmd_buffer[7], cmd_buffer[8]));
     while (mgos_uart_write_avail(UART_NO) < MHZ19_DATA_LEN)
-    mgos_uart_flush(UART_NO);
+        mgos_uart_flush(UART_NO);
     mgos_uart_write(UART_NO, cmd_buffer, MHZ19_DATA_LEN);
 }
 
@@ -433,7 +485,8 @@ bool mhz19c_init()
     ucfg.num_data_bits = 8;
     ucfg.parity = MGOS_UART_PARITY_NONE;
     ucfg.stop_bits = MGOS_UART_STOP_BITS_1;
-    if (!mgos_uart_configure(UART_NO, &ucfg)) {
+    if (!mgos_uart_configure(UART_NO, &ucfg))
+    {
         LOG(LL_ERROR, ("configure uart failed"));
         return false;
     }
@@ -507,7 +560,8 @@ int mhz19c_measure_thread(struct pt *pt, uint16_t ticks)
         mhz19c_send_command(MHZ19C_CMD_READ_CO2, 0);
         timer = 0;
         PT_WAIT_UNTIL(pt, (mgos_uart_read_avail(UART_NO) >= MHZ19_DATA_LEN) || timer >= 1000);
-        if (!mhz19c_receive_response(response) && response[1] == MHZ19C_CMD_READ_CO2) {
+        if (!mhz19c_receive_response(response) && response[1] == MHZ19C_CMD_READ_CO2)
+        {
             ppm = (response[2] << 8) | response[3];
             ppm += 20; // co2 correction
             set_leds();
@@ -618,8 +672,15 @@ int data_push_thread(struct pt *pt, uint16_t ticks)
         {
             char topic[100];
             snprintf(topic, sizeof(topic), mgos_sys_config_get_mqtt_topic(), mgos_sys_config_get_mqtt_client_id());
-            uint16_t res = mgos_mqtt_pubf(topic, 0, false, "{data:%s}", buf);
-            LOG(LL_INFO, ("*** mqtt success: %d", res));
+            uint16_t packet_id = mgos_mqtt_pubf(topic, 0, false, "{data:%s}", buf);
+            if (packet_id)
+            {
+                LOG(LL_INFO, ("*** mqtt packet %d sent ***", packet_id));
+            }
+            else
+            {
+                LOG(LL_ERROR, ("*** mqtt push failed ***"));
+            }
             timer = 0;
             PT_WAIT_UNTIL(pt, timer >= 1);
         }
@@ -679,7 +740,8 @@ enum mgos_app_init_result mgos_app_init(void)
     //read_config();
 
     // init dht
-    if ((s_dht = mgos_dht_create(PIN_DHT, DHT11)) == NULL) {
+    if ((s_dht = mgos_dht_create(PIN_DHT, DHT11)) == NULL)
+    {
         LOG(LL_ERROR, ("init dht11 failed"));
         return MGOS_APP_INIT_ERROR;
     }
@@ -687,7 +749,8 @@ enum mgos_app_init_result mgos_app_init(void)
     //LOG(LL_DEBUG, ("--- 1 ---"));
 
     // init mhz19c
-    if (!mhz19c_init()) {
+    if (!mhz19c_init())
+    {
         LOG(LL_ERROR, ("init mhz19c failed"));
         return MGOS_APP_INIT_ERROR;
     }
@@ -722,12 +785,23 @@ enum mgos_app_init_result mgos_app_init(void)
 
     //LOG(LL_DEBUG, ("--- 5 ---"));
 
-    #ifdef MGOS_HAVE_HTTP_SERVER
+#ifdef MGOS_HAVE_HTTP_SERVER
     mgos_register_http_endpoint("/api/sensor/state", http_handler_sensor_data, NULL);
-    mgos_register_http_endpoint("/api/auth/keys/create", http_handler_auth_keys, NULL); // TODO: restrict this path to authenticated user via acl (or using digest authentication)
-    #endif
+    mgos_register_http_endpoint("/api/auth/keys/create", http_handler_auth_keys, NULL);      // TODO: restrict this path to authenticated user via acl (or using digest authentication)
+    mgos_register_http_endpoint("/api/auth/admin/pass", http_handler_auth_admin_pass, NULL); // TODO: restrict this path to authenticated user via acl (or using digest authentication)
+#endif
 
     //LOG(LL_DEBUG, ("--- 6 ---"));
+
+    // start ota firmware update
+    /*
+    struct mgos_ota_opts otaOpts = {
+        .timeout = WIFI_OTA_DOWNLOAD_TIME_SEC,
+        .commit_timeout = 300, // seconds
+        .ignore_same_version = true,
+    };
+    mgos_ota_http_start(mgos_sys_config_get_update_url(), &otaOpts);
+    */
 
     // start main
     mgos_wdt_enable();

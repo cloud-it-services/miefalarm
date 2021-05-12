@@ -1,29 +1,38 @@
 [
     {
         "method": "Config.*",
-        "acl": "*"
+        "acl": "*",
+        "comment": "remove in production"
     },
     {
         "method": "RPC.*",
-        "acl": "*"
+        "acl": "*",
+        "comment": "remove in production"
     },
     {
         "method": "FS.*",
-        "acl": "*"
+        "acl": "*",
+        "comment": "remove in production"
     },
     {
         "method": "SYS.*",
+        "acl": "*",
+        "comment": "remove in production"
+    },
+    {
+        "method": "Config.Get",
+        "ch_type": "HTTP",
         "acl": "*"
     },
     {
         "method": "Config.*",
         "ch_type": "HTTP",
-        "acl": "+admin"
+        "acl": "admin"
     },
     {
         "method": "Wifi.Scan",
         "ch_type": "HTTP",
-        "acl": "+admin"
+        "acl": "admin"
     },
     {
         "method": "*",

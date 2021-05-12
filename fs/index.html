@@ -322,24 +322,63 @@
         }
 
         /* chartist threshold plugin */
-        .ct-line.ct-threshold-above,
-        .ct-point.ct-threshold-above,
-        .ct-bar.ct-threshold-above {
-            stroke: #f05b4f;
+        .ct-line {
+            stroke-width: 3px;
         }
 
-        .ct-line.ct-threshold-below,
-        .ct-point.ct-threshold-below,
-        .ct-bar.ct-threshold-below {
-            stroke: #59922b;
+        .ct-line.ct-threshold-above {
+            stroke: red;
         }
 
         .ct-area.ct-threshold-above {
-            fill: #f05b4f;
+            fill: red;
+        }
+
+        .ct-line.ct-threshold-area-0 {
+            stroke: orange;
+
+        }
+
+        .ct-area.ct-threshold-area-0 {
+            fill: orange;
+        }
+
+        .ct-line.ct-threshold-below {
+            stroke: green;
         }
 
         .ct-area.ct-threshold-below {
-            fill: #59922b;
+            fill: green;
+        }
+
+        .ct-line.ct-range-above,
+        .ct-line.ct-range-below {
+            stroke: red;
+        }
+
+        .ct-area.ct-range-above,
+        .ct-area.ct-range-below {
+            fill: red;
+        }
+
+        .ct-line.ct-range-area-0,
+        .ct-line.ct-range-area-2 {
+            stroke: orange;
+
+        }
+
+        .ct-area.ct-range-area-0,
+        .ct-area.ct-range-area-2 {
+            fill: orange;
+        }
+
+        .ct-line.ct-range-area-1 {
+            stroke: green;
+
+        }
+
+        .ct-area.ct-range-area-1 {
+            fill: green;
         }
 
         .sec-title {
@@ -365,7 +404,9 @@
                 <li title="Dashboard">
                     <label for="tab1" role="button">
                         <svg viewBox="0 0 24 24">
-                            <path d="M10,14 C10.5522847,14 11,14.4477153 11,15 L11,21 C11,21.5522847 10.5522847,22 10,22 L3,22 C2.44771525,22 2,21.5522847 2,21 L2,15 C2,14.4477153 2.44771525,14 3,14 L10,14 Z M21,9 C21.5522847,9 22,9.44771525 22,10 L22,21 C22,21.5522847 21.5522847,22 21,22 L14,22 C13.4477153,22 13,21.5522847 13,21 L13,10 C13,9.44771525 13.4477153,9 14,9 L21,9 Z M10,2 C10.5522847,2 11,2.44771525 11,3 L11,11 C11,11.5522847 10.5522847,12 10,12 L3,12 C2.44771525,12 2,11.5522847 2,11 L2,3 C2,2.44771525 2.44771525,2 3,2 L10,2 Z M21,2 C21.5522847,2 22,2.44771525 22,3 L22,6 C22,6.55228475 21.5522847,7 21,7 L14,7 C13.4477153,7 13,6.55228475 13,6 L13,3 C13,2.44771525 13.4477153,2 14,2 L21,2 Z"></path>
+                            <path
+                                d="M10,14 C10.5522847,14 11,14.4477153 11,15 L11,21 C11,21.5522847 10.5522847,22 10,22 L3,22 C2.44771525,22 2,21.5522847 2,21 L2,15 C2,14.4477153 2.44771525,14 3,14 L10,14 Z M21,9 C21.5522847,9 22,9.44771525 22,10 L22,21 C22,21.5522847 21.5522847,22 21,22 L14,22 C13.4477153,22 13,21.5522847 13,21 L13,10 C13,9.44771525 13.4477153,9 14,9 L21,9 Z M10,2 C10.5522847,2 11,2.44771525 11,3 L11,11 C11,11.5522847 10.5522847,12 10,12 L3,12 C2.44771525,12 2,11.5522847 2,11 L2,3 C2,2.44771525 2.44771525,2 3,2 L10,2 Z M21,2 C21.5522847,2 22,2.44771525 22,3 L22,6 C22,6.55228475 21.5522847,7 21,7 L14,7 C13.4477153,7 13,6.55228475 13,6 L13,3 C13,2.44771525 13.4477153,2 14,2 L21,2 Z">
+                            </path>
                         </svg>
                         <br />
                         <span>Dashboard</span>
@@ -374,7 +415,9 @@
                 <li title="Settings">
                     <label for="tab2" role="button" onclick="onSettingsClicked()">
                         <svg viewBox="0 0 24 24">
-                            <path d="M19.4,13c0-0.3,0.1-0.7,0.1-1s0-0.7-0.1-1l2.1-1.5c0.2-0.1,0.3-0.4,0.1-0.7l-2-3.5C19.5,5,19.2,4.9,19,5l-2.4,1.1  c-0.5-0.4-1.2-0.8-1.8-1l-0.3-2.6C14.5,2.2,14.3,2,14,2H10C9.7,2,9.5,2.2,9.5,2.5L9.2,5c-0.7,0.3-1.3,0.6-1.8,1L5,5  C4.8,4.9,4.5,5,4.4,5.2l-2,3.5C2.2,9,2.2,9.3,2.5,9.4L4.6,11c0,0.3-0.1,0.7-0.1,1s0,0.7,0.1,1l-2.1,1.5c-0.2,0.1-0.3,0.4-0.1,0.7  l2,3.5C4.5,19,4.8,19.1,5,19l2.4-1.1c0.5,0.4,1.2,0.8,1.8,1l0.3,2.6c0,0.3,0.2,0.5,0.5,0.5H14c0.3,0,0.5-0.2,0.5-0.5l0.3-2.6  c0.7-0.3,1.3-0.6,1.8-1L19,19c0.2,0.1,0.5,0,0.6-0.2l2-3.5c0.1-0.2,0.1-0.5-0.1-0.7L19.4,13z M12,16c-2.2,0-4-1.8-4-4  c0-2.2,1.8-4,4-4s4,1.8,4,4C16,14.2,14.2,16,12,16z"></path>
+                            <path
+                                d="M19.4,13c0-0.3,0.1-0.7,0.1-1s0-0.7-0.1-1l2.1-1.5c0.2-0.1,0.3-0.4,0.1-0.7l-2-3.5C19.5,5,19.2,4.9,19,5l-2.4,1.1  c-0.5-0.4-1.2-0.8-1.8-1l-0.3-2.6C14.5,2.2,14.3,2,14,2H10C9.7,2,9.5,2.2,9.5,2.5L9.2,5c-0.7,0.3-1.3,0.6-1.8,1L5,5  C4.8,4.9,4.5,5,4.4,5.2l-2,3.5C2.2,9,2.2,9.3,2.5,9.4L4.6,11c0,0.3-0.1,0.7-0.1,1s0,0.7,0.1,1l-2.1,1.5c-0.2,0.1-0.3,0.4-0.1,0.7  l2,3.5C4.5,19,4.8,19.1,5,19l2.4-1.1c0.5,0.4,1.2,0.8,1.8,1l0.3,2.6c0,0.3,0.2,0.5,0.5,0.5H14c0.3,0,0.5-0.2,0.5-0.5l0.3-2.6  c0.7-0.3,1.3-0.6,1.8-1L19,19c0.2,0.1,0.5,0,0.6-0.2l2-3.5c0.1-0.2,0.1-0.5-0.1-0.7L19.4,13z M12,16c-2.2,0-4-1.8-4-4  c0-2.2,1.8-4,4-4s4,1.8,4,4C16,14.2,14.2,16,12,16z">
+                            </path>
                         </svg>
                         <br />
                         <span>Settings</span>
@@ -434,7 +477,8 @@
                     <div class="col c12">
                         <div class="card">
                             <div class="card-header">
-                                <button id="btn_save_config" class="btn btn-sm btn-c" onclick="saveConfig()" style="float:right" disabled>Save settings</button>
+                                <button id="btn_save_config" class="btn btn-sm btn-c" onclick="saveConfig()"
+                                    style="float:right" disabled>Save settings</button>
                             </div>
                             <div class="card-body">
                                 <div class="row form">
@@ -444,11 +488,18 @@
                                         </h3>
                                         <div class="form-control">
                                             <label for="admin_pass">Admin Password:</label>
-                                            <input type="password" class="smooth" id="admin_pass" minlength="8" autocomplete="off">
+                                            <input type="password" class="smooth" id="admin_pass" minlength="8"
+                                                autocomplete="off"
+                                                onchange="btn_set_admin_pass.disabled = input_admin_pass.value === input_admin_pass_repeat.value">
                                         </div>
                                         <div class="form-control">
-                                            <label for="co2_threshold_critical">Critical CO2 ppm value:</label>
-                                            <input type="number" class="smooth" id="co2_threshold_critical" min="0" max="5000" style="width:70px;">
+                                            <label for="admin_pass_repeat">Repeat Admin Password:</label>
+                                            <input type="password" class="smooth" id="admin_pass_repeat" minlength="8"
+                                                autocomplete="off">
+                                        </div>
+                                        <div class="form-control">
+                                            <button id="btn_set_admin_pass" class="btn btn-sm btn-c"
+                                                onclick="setAdminPassword()" disabled>Set new password</button>
                                         </div>
                                     </div>
                                     <div class="col c4">
@@ -457,11 +508,75 @@
                                         </h3>
                                         <div class="form-control">
                                             <label for="wifi_ssid">Network:</label>
-                                            <select class="smooth" id="wifi_ssid" placeholder="Select WiFi network..."></select>
+                                            <select class="smooth" id="wifi_ssid"
+                                                placeholder="Select WiFi network..."></select>
                                         </div>
                                         <div class="form-control">
                                             <label for="wifi_pass">Password:</label>
-                                            <input type="password" class="smooth" id="wifi_pass" minlength="8" autocomplete="off">
+                                            <input type="password" class="smooth" id="wifi_pass" minlength="8"
+                                                autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="col c4">
+                                        <h3 class="sec-title">
+                                            Sensor Thresholds
+                                        </h3>
+                                        <div class="form-control">
+                                            <label style="font-weight:bold">CO2:</label>
+                                            <div class="row form">
+                                                <div class="col c2">
+                                                    Warn at:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="co2_threshold_warn" min="0"
+                                                        max="5000" style="width:70px;">&nbsp;ppm
+                                                </div>
+                                                <div class="col c2">
+                                                    Alert at:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="co2_threshold_critical"
+                                                        min="0" max="5000" style="width:70px;">&nbsp;ppm
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-control">
+                                            <label style="font-weight:bold">Temperature:</label>
+                                            <div class="row form">
+                                                <div class="col c2">
+                                                    Lower bound:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="temperature_threshold_lower"
+                                                        min="0" max="5000" style="width:70px;">&nbsp;°C
+                                                </div>
+                                                <div class="col c2">
+                                                    Upper bound:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="temperature_threshold_upper"
+                                                        min="0" max="5000" style="width:70px;">&nbsp;°C
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-control">
+                                            <label style="font-weight:bold">Humidity:</label>
+                                            <div class="row form">
+                                                <div class="col c2">
+                                                    Lower bound:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="humidity_threshold_lower"
+                                                        min="0" max="100" style="width:70px;">&nbsp;%
+                                                </div>
+                                                <div class="col c2">
+                                                    Upper bound:
+                                                </div>
+                                                <div class="col c3">
+                                                    <input type="number" class="smooth" id="humidtiy_threshold_upper"
+                                                        min="0" max="100" style="width:70px;">&nbsp;%
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -471,17 +586,20 @@
                                             Sensor Data Push
                                         </h3>
                                         <div class="form-control">
-                                            <label for="push_interval">Interval:</label>
-                                            <input type="number" class="smooth" id="push_interval" min="0" size="5" style="width:70px;">&nbsp;seconds
-                                        </div>
-                                        <div class="form-control">
                                             <label for="cloud_device_url">IOT Cloud Device URL:</label>
                                             <input type="url" class="smooth" id="cloud_device_url" readonly>
-                                            <button id="btn_create_device_url" class="btn btn-sm btn-c" onclick="createNewDeviceURL()">Change</button>
+                                            <button id="btn_create_device_url" class="btn btn-sm btn-c"
+                                                onclick="createNewDeviceURL()">Change</button>
                                         </div>
                                         <div class="form-control">
                                             <label for="push_url">Custom HTTP Endpoint URL:</label>
-                                            <input type="url" class="smooth" id="push_url" placeholder="https://example.com/events" pattern="https://.*" size="30">
+                                            <input type="url" class="smooth" id="push_url"
+                                                placeholder="https://example.com/events" pattern="https://.*" size="30">
+                                        </div>
+                                        <div class="form-control">
+                                            <label for="push_interval">Push interval:</label>
+                                            every&nbsp;<input type="number" class="smooth" id="push_interval" min="0"
+                                                size="5" style="width:70px;">&nbsp;seconds
                                         </div>
                                     </div>
                                     <div class="col c4">
@@ -490,7 +608,8 @@
                                         </h3>
                                         <div class="form-control">
                                             <label for="mqtt_broker">Broker:</label>
-                                            <input type="text" class="smooth" id="mqtt_broker" placeholder="iot.eclipse.org:1883" size="30">
+                                            <input type="text" class="smooth" id="mqtt_broker"
+                                                placeholder="iot.eclipse.org:1883" size="30">
                                         </div>
                                         <div class="form-control">
                                             <label for="mqtt_client_id">Client ID:</label>
@@ -506,7 +625,8 @@
                                         </div>
                                         <div class="form-control">
                                             <label for="mqtt_topic">Topic:</label>
-                                            <input type="text" class="smooth" id="mqtt_topic" size="30" placeholder="devices/%s/events">
+                                            <input type="text" class="smooth" id="mqtt_topic" size="30"
+                                                placeholder="devices/%s/events">
                                         </div>
                                     </div>
                                 </div>
@@ -523,7 +643,8 @@
         const page_settings = document.getElementById("settings")
 
         const input_admin_pass = document.getElementById("admin_pass")
-        const input_co2_threshold_critical = document.getElementById("co2_threshold_critical")
+        const input_admin_pass_repeat = document.getElementById("admin_pass_repeat")
+        const btn_set_admin_pass = document.getElementById("btn_set_admin_pass")
 
         const input_wifi_ssid = document.getElementById("wifi_ssid")
         const input_wifi_pass = document.getElementById("wifi_pass")
@@ -540,6 +661,13 @@
 
         const btn_save_config = document.getElementById("btn_save_config")
         const btn_create_device_url = document.getElementById("btn_create_device_url")
+
+        const input_co2_threshold_warn = document.getElementById("co2_threshold_warn")
+        const input_co2_threshold_critical = document.getElementById("co2_threshold_critical")
+        const input_temperature_threshold_lower = document.getElementById("temperature_threshold_lower")
+        const input_temperature_threshold_upper = document.getElementById("temperature_threshold_upper")
+        const input_humidtiy_threshold_lower = document.getElementById("humidity_threshold_lower")
+        const input_humidtiy_threshold_upper = document.getElementById("humidtiy_threshold_upper")
 
         const textFields = {
             co2: document.getElementById("currentCO2"),
@@ -559,6 +687,21 @@
 
         var config
 
+        async function setAdminPassword() {
+            if (input_admin_pass.value !== input_admin_pass_repeat.value) return
+
+            let resp = await fetch("/api/auth/admin/pass", {
+                method: "POST",
+                body: JSON.stringify({
+                    password: input_admin_pass.value
+                })
+            })
+            if (resp.status !== 200) {
+                console.error("set admin password failed")
+                return
+            }
+        }
+
         async function wifiScan() {
 
             let resp = await fetch("/rpc/Wifi.Scan")
@@ -577,6 +720,21 @@
                 input_wifi_ssid.add(new Option(text, ap.ssid, false, ap.ssid === config.wifi.sta.ssid))
             };
             btn_save_config.disabled = false
+        }
+
+        async function loadThresholds() {
+
+            let resp = await fetch("/rpc/Config.Get", {
+                method: "POST",
+                body: JSON.stringify({
+                    key: "thresholds"
+                })
+            })
+            if (resp.status !== 200) {
+                console.error("load thresholds failed")
+                return
+            }
+            return await resp.json();
         }
 
         async function loadConfig() {
@@ -605,7 +763,7 @@
                     push: {},
                     mqtt: {},
                     admin: {},
-                    co2: {}
+                    thresholds: {}
                 }
             }
             if (input_wifi_pass.value) {
@@ -632,13 +790,20 @@
                     topic: input_mqtt_topic.value || ""
                 }
             }
-            if (input_admin_pass.value) {
-                pl.config.admin.pass = input_admin_pass.value
-            }
 
-            if (input_co2_threshold_critical.value) {
-                pl.config.co2.ppm = {}
-                pl.config.co2.ppm.critical = parseInt(input_co2_threshold_critical.value)
+            pl.config.thresholds = {
+                co2: {
+                    warn: parseInt(input_co2_threshold_warn.value),
+                    critical: parseInt(input_co2_threshold_critical.value)
+                },
+                termperature: {
+                    lower: parseInt(input_temperature_threshold_lower.value),
+                    upper: parseInt(input_temperature_threshold_upper.value)
+                },
+                humidity: {
+                    lower: parseInt(input_humidtiy_threshold_lower.value),
+                    upper: parseInt(input_humidtiy_threshold_upper.value)
+                }
             }
 
             let resp = await fetch("/rpc/Config.Set", {
@@ -651,14 +816,14 @@
             }
 
             resp = await fetch("/rpc/Config.Save", {
-              method: "POST",
-              body: JSON.stringify({
-                "reboot": true
-              })
+                method: "POST",
+                body: JSON.stringify({
+                    "reboot": true
+                })
             })
             if (resp.status !== 200) {
-              console.error("save wifi config failed")
-              return
+                console.error("save wifi config failed")
+                return
             }
         }
 
@@ -673,9 +838,13 @@
                 input_mqtt_user.value = config.mqtt.user
                 input_mqtt_pass.value = config.mqtt.pass
                 input_mqtt_topic.value = config.mqtt.topic
-                input_admin_pass.value = config.admin.pass
-                input_co2_threshold_critical.value = config.co2.ppm.critical
-                
+                input_co2_threshold_warn.value = config.thresholds.co2.warn
+                input_co2_threshold_critical.value = config.thresholds.co2.critical
+                input_temperature_threshold_upper.value = config.thresholds.temperature.upper
+                input_temperature_threshold_lower.value = config.thresholds.temperature.lower
+                input_humidtiy_threshold_lower.value = config.thresholds.humidity.lower
+                input_humidtiy_threshold_upper.value = config.thresholds.humidity.upper
+
                 if (config.auth.public_key) {
                     input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}`
                 }
@@ -684,7 +853,9 @@
         }
 
         async function createNewDeviceURL() {
-            if (confirm("By changing the device URL, all settings in your IOT Cloud will be lost! Do you really want to change the device URL?")) {
+            if (confirm(
+                    "By changing the device URL, all settings in your IOT Cloud will be lost! Do you really want to change the device URL?"
+                    )) {
                 resp = await fetch("/api/auth/keys/create", {
                     method: "POST"
                 })
@@ -721,7 +892,9 @@
             humidity: null
         }
 
-        function initDashboard() {
+        async function initDashboard() {
+
+            let thresholds = await loadThresholds()
 
             let options = {
                 showArea: true,
@@ -744,27 +917,45 @@
                     right: 0,
                     bottom: 0,
                     left: 0
-                },
-                plugins: [
-                    Chartist.plugins.ctThreshold({
-                        threshold: 1000
-                    })
-                ]
+                }
             }
 
+            options.axisY.high = 2500
+            let th = thresholds ? [thresholds.co2.critical, thresholds.co2.warn] : [2000, 1000]
+            options.plugins = [Chartist.plugins.ctThreshold({
+                thresholds: th
+            })]
             charts.co2 = new Chartist.Line('#co2', chartData.co2, options)
 
             options.axisY.high = 50
+            th = thresholds ? [thresholds.temperature.upper + 5, thresholds.temperature.upper, thresholds
+                .temperature.lower, thresholds.temperature.lower - 5
+            ] : [30, 25, 20, 15]
             options.plugins = [Chartist.plugins.ctThreshold({
-                threshold: 25
+                prefix: "ct-range-",
+                thresholds: th
             })]
             charts.temperature = new Chartist.Line('#temperature', chartData.temperature, options)
 
             options.axisY.high = 100
+            th = thresholds ? [thresholds.humidity.upper + 10, thresholds.humidity.upper, thresholds.humidity.lower,
+                thresholds.humidity.lower - 10
+            ] : [80, 70, 40, 30]
             options.plugins = [Chartist.plugins.ctThreshold({
-                threshold: 50
+                prefix: "ct-range-",
+                thresholds: th
             })]
             charts.humidity = new Chartist.Line('#humidity', chartData.humidity, options)
+
+            // TESTING
+            /*
+            chartData.co2.labels = ["1","2","3","4","5"]
+            chartData.co2.series[0] = [300,500,1000,2000,4000]
+            charts.co2.update(chartData.co2)
+            chartData.humidity.labels = ["1","2","3","4","5"]
+            chartData.humidity.series[0] = [10,30,50,70,90]
+            charts.humidity.update(chartData.humidity)
+            */
 
             setInterval(updateDashboard, 10000)
             updateDashboard()
@@ -804,7 +995,7 @@
                                     }
                                 } catch (e) {}
                             }
-                            options ? charts[d].update(chartData[d],options, true) : charts[d].update(chartData[d])
+                            options ? charts[d].update(chartData[d], options, true) : charts[d].update(chartData[d])
                         }
                     }
                 }
