@@ -487,13 +487,13 @@
                                             General
                                         </h3>
                                         <div class="form-control">
-                                            <label for="admin_pass">Admin Password:</label>
+                                            <label for="admin_pass">New admin password:</label>
                                             <input type="password" class="smooth" id="admin_pass" minlength="8"
                                                 autocomplete="off"
                                                 onchange="btn_set_admin_pass.disabled = input_admin_pass.value === input_admin_pass_repeat.value">
                                         </div>
                                         <div class="form-control">
-                                            <label for="admin_pass_repeat">Repeat Admin Password:</label>
+                                            <label for="admin_pass_repeat">Repeat new admin password:</label>
                                             <input type="password" class="smooth" id="admin_pass_repeat" minlength="8"
                                                 autocomplete="off">
                                         </div>
@@ -504,7 +504,7 @@
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
-                                            WiFi Connection
+                                            WiFi connection
                                         </h3>
                                         <div class="form-control">
                                             <label for="wifi_ssid">Network:</label>
@@ -519,7 +519,7 @@
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
-                                            Sensor Thresholds
+                                            Sensor thresholds
                                         </h3>
                                         <div class="form-control">
                                             <label style="font-weight:bold">CO2:</label>
@@ -586,13 +586,13 @@
                                             Sensor Data Push
                                         </h3>
                                         <div class="form-control">
-                                            <label for="cloud_device_url">IOT Cloud Device URL:</label>
+                                            <label for="cloud_device_url">IOT cloud device URL:</label>
                                             <input type="url" class="smooth" id="cloud_device_url" readonly>
                                             <button id="btn_create_device_url" class="btn btn-sm btn-c"
                                                 onclick="createNewDeviceURL()">Change</button>
                                         </div>
                                         <div class="form-control">
-                                            <label for="push_url">Custom HTTP Endpoint URL:</label>
+                                            <label for="push_url">Custom HTTP endpoint URL:</label>
                                             <input type="url" class="smooth" id="push_url"
                                                 placeholder="https://example.com/events" pattern="https://.*" size="30">
                                         </div>

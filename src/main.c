@@ -319,19 +319,21 @@ static void http_handler_auth_admin_pass(struct mg_connection *c, int ev, void *
         return;
 
     struct http_message *hm = (struct http_message *)p;
-    char body[1000];
-    char password[100];
+    
+    char *password = NULL;
+    char htdigest[100];
     uint8_t hash[16];
-    memcpy(body, hm->body.p,sizeof(body) - 1 < hm->body.len ? sizeof(body) - 1 : hm->body.len);
-    json_scanf(body, strlen(body), "{password:%Q}", password);
-    LOG(LL_INFO, ("change admin password to: %s", password));
-    md5_hash(hash, (uint8_t*) password, strlen(password));
-
     char str_hash[2 * sizeof(hash)];
-    hex_encode(hash, sizeof(hash), str_hash);
 
-    LOG(LL_INFO, ("change admin password hash: %s", str_hash));
+    json_scanf(hm->body.p, hm->body.len, "{password:%Q}", &password);
+    snprintf(htdigest, sizeof(htdigest), "admin:settings:%s", password);
+    md5_hash(hash, (uint8_t*) htdigest, strlen(htdigest));
+    hex_encode(hash, sizeof(hash), str_hash);
+    
+    snprintf(htdigest, sizeof(htdigest), "admin:settings:%s", str_hash);
+    save_file("rpc_auth.txt", htdigest);
     send_response(c, NULL);
+    free(password);
 }
 /**
  * HTTP API Handler END
