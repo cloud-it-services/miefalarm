@@ -29,7 +29,7 @@ config_schema:
   - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
   - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP SSID" }]
   - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP password" }]
-  - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP dhcp hostname" }]
+  #- ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP dhcp hostname" }]
   - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP enabled" }]
   #- ["http.ssl_ca_cert", "s", "ca.crt", { title: "Verify clients this CA bundle" }]
   #- ["http.ssl_cert", "s", "cert.pem", { title: "Turn on SSL on the listener, use this cert" }]
@@ -37,13 +37,10 @@ config_schema:
   #- ["http.listen_addr", "s", "443", { title: "Listening port / address" }]
   #- ["http.auth_domain", "s", "settings", {title: "Enable authentication of all HTTP requests"}]
   #- ["http.auth_file", "s", "rpc_auth.txt", {title: "Password file to use for auth"}]
-  #- ["push.url", "s", "https://test-dot-cloudstack5.appspot.com/api/inbound/test?access_token=kl0sFX5VsW-bTnbE5ytDkv6mpq1yv3937lUQfP_pFzhO3AprGSZyciHiQzRFajxtc2wJmVDATdvp9gBllYXZ0AmGXU1", { title: "Push endpoint for sensor events"}]
   - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
   - ["push.interval", "i", 10, { title: "Push interval in seconds" }]
-  #- ["admin.pass", "s", "admin", { title: "Password for device settings" }]
   - ["mqtt.enable", "b", true, { title: "Enable MQTT" }]
   - ["mqtt.server", "s", "broker.losant.com:1883", { title: "MQTT Broker address" }]
-  #- ["mqtt.ssl_ca_cert", "ca.pem"]
   - ["mqtt.client_id", "s", "6089306c6609710007e6f733", { title: "Custom ID for this device" }]
   - ["mqtt.user", "s", "fc50cb9c-94d1-4867-91f1-705681e0b1a1", { title: "User for MQTT authentication" }]
   - ["mqtt.pass", "s", "d2520161d7c5da7907035e6bdd854073aa0002a7fe073b463467f2a37bcc3883", { title: "Password for MQTT authentication" }]
@@ -51,8 +48,11 @@ config_schema:
   - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
   - ["auth.public_key", "s", "", { title: "Device authentication public key" }]
   - ["cloud.enable", "b", true, { title: "Enable IOT Cloud data push" }]
-  - ["update.url", "s", "http://miefalarm.de/api/devices/update", {title : "Fetch updates from here"}]
-  - ["update.interval", "i", 10, { title: "Check for updates this often"}]
+  #- ["update.url", "s", "http://miefalarm.de/api/devices/update", {title : "Fetch updates from here"}]
+  #- ["update.interval", "i", 10, { title: "Check for updates this often"}]
+  - ["dash.enable", "b", true, { title: "Enable mDash"}]
+  - ["dash.token", "s", "rensIf0N4CoyAo913ttiHJA", { title: "mDash device token"}]
+  - ["dash.ssl_ca_cert", "s", "ca.pem", {"title": "Verify server certificate using this CA bundle"}]
 
 includes:
   - libs
@@ -64,6 +64,7 @@ libs:
   - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/mongoose-os-libs/http-server
   - origin: https://github.com/mongoose-os-libs/wifi
+  #- origin: https://github.com/mongoose-os-libs/rpc-ws
   - origin: https://github.com/mongoose-os-libs/rpc-common
   - origin: https://github.com/mongoose-os-libs/rpc-uart
   - origin: https://github.com/mongoose-os-libs/rpc-service-fs
@@ -71,12 +72,14 @@ libs:
   - origin: https://github.com/mongoose-os-libs/rpc-service-wifi
   - origin: https://github.com/mongoose-os-libs/mbedtls
   - origin: https://github.com/mongoose-os-libs/mqtt
+  - origin: https://github.com/mongoose-os-libs/dash
   #- origin: https://github.com/mongoose-os-libs/rpc-service-ota
   #- origin: https://github.com/mongoose-os-libs/ota-http-client
 
 cdefs:
   MGOS_ENABLE_WEB_CONFIG: 1
   MGOS_ENABLE_FILE_UPLOAD: 1
+#  MG_ENABLE_IPV6: 0
 
 cflags:
   - "-Wimplicit-fallthrough=0"

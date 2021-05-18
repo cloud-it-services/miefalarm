@@ -710,7 +710,7 @@
                 return
             }
             let data = await resp.json();
-            console.log(`wifi networks: ${JSON.stringify(data)}`)
+            //console.log(`wifi networks: ${JSON.stringify(data)}`)
 
             // populate select
             input_wifi_ssid.options.length = 0;
@@ -796,7 +796,7 @@
                     warn: parseInt(input_co2_threshold_warn.value),
                     critical: parseInt(input_co2_threshold_critical.value)
                 },
-                termperature: {
+                temperature: {
                     lower: parseInt(input_temperature_threshold_lower.value),
                     upper: parseInt(input_temperature_threshold_upper.value)
                 },
@@ -825,6 +825,8 @@
                 console.error("save wifi config failed")
                 return
             }
+
+            initDashboard()
         }
 
         async function onSettingsClicked() {
@@ -855,7 +857,7 @@
         async function createNewDeviceURL() {
             if (confirm(
                     "By changing the device URL, all settings in your IOT Cloud will be lost! Do you really want to change the device URL?"
-                    )) {
+                )) {
                 resp = await fetch("/api/auth/keys/create", {
                     method: "POST"
                 })
@@ -894,7 +896,8 @@
 
         async function initDashboard() {
 
-            let thresholds = await loadThresholds()
+            let thresholds = null;
+            thresholds = await loadThresholds()
 
             let options = {
                 showArea: true,
@@ -930,7 +933,7 @@
             options.axisY.high = 50
             th = thresholds ? [thresholds.temperature.upper + 5, thresholds.temperature.upper, thresholds
                 .temperature.lower, thresholds.temperature.lower - 5
-            ] : [30, 25, 20, 15]
+            ] : [40, 35, 20, 15]
             options.plugins = [Chartist.plugins.ctThreshold({
                 prefix: "ct-range-",
                 thresholds: th
@@ -952,6 +955,11 @@
             chartData.co2.labels = ["1","2","3","4","5"]
             chartData.co2.series[0] = [300,500,1000,2000,4000]
             charts.co2.update(chartData.co2)
+            
+            chartData.temperature.labels = ["1","2","3","4","5"]
+            chartData.temperature.series[0] = [10,30,50,70,90]
+            charts.temperature.update(chartData.temperature)
+            
             chartData.humidity.labels = ["1","2","3","4","5"]
             chartData.humidity.series[0] = [10,30,50,70,90]
             charts.humidity.update(chartData.humidity)

@@ -6,6 +6,7 @@
 #include "pt/pt.h"
 #include "uECC/uECC.h"
 #include "uECC/uECC.c"
+//#include "esp_debug_helpers.h"
 #ifdef MGOS_HAVE_HTTP_SERVER
 #include "mgos_http_server.h"
 #endif
@@ -734,6 +735,8 @@ static void main_loop(void *arg)
 
 enum mgos_app_init_result mgos_app_init(void)
 {
+    //esp_set_watchpoint(0,  (void *)0x00000031, 4, ESP_WATCHPOINT_ACCESS);
+
     LOG(LL_INFO, ("CS_PLATFORM: %d", CS_PLATFORM));
     LOG(LL_INFO, ("PRIVATE_KEY_LEN: %d", PRIVATE_KEY_LEN));
     LOG(LL_INFO, ("PUBLIC_KEY_LEN: %d", PUBLIC_KEY_LEN));
@@ -794,16 +797,6 @@ enum mgos_app_init_result mgos_app_init(void)
 #endif
 
     //LOG(LL_DEBUG, ("--- 6 ---"));
-
-    // start ota firmware update
-    /*
-    struct mgos_ota_opts otaOpts = {
-        .timeout = WIFI_OTA_DOWNLOAD_TIME_SEC,
-        .commit_timeout = 300, // seconds
-        .ignore_same_version = true,
-    };
-    mgos_ota_http_start(mgos_sys_config_get_update_url(), &otaOpts);
-    */
 
     // start main
     mgos_wdt_enable();
