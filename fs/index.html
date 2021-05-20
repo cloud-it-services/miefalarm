@@ -516,6 +516,10 @@
                                             <input type="password" class="smooth" id="wifi_pass" minlength="8"
                                                 autocomplete="off">
                                         </div>
+                                        <div class="form-control">
+                                            <label for="dhcp_hostname">Hostname:</label>
+                                            <input type="text" class="smooth" id="dhcp_hostname" autocomplete="off">
+                                        </div>
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
@@ -648,6 +652,7 @@
 
         const input_wifi_ssid = document.getElementById("wifi_ssid")
         const input_wifi_pass = document.getElementById("wifi_pass")
+        const input_dhcp_hostname = document.getElementById("dhcp_hostname")
 
         const input_push_interval = document.getElementById("push_interval")
         const input_push_url = document.getElementById("push_url")
@@ -766,10 +771,10 @@
                     thresholds: {}
                 }
             }
-            if (input_wifi_pass.value) {
+            if (input_wifi_ssid.value) {
                 pl.config.wifi.sta = {
                     enable: true,
-                    dhcp_hostname: "miefalarm",
+                    dhcp_hostname: input_dhcp_hostname.value || "miefalarm",
                     ssid: input_wifi_ssid.value || "",
                     pass: input_wifi_pass.value || ""
                 }
@@ -832,7 +837,7 @@
         async function onSettingsClicked() {
             config = await loadConfig()
             if (config) {
-                input_wifi_pass.value = config.wifi.sta.pass
+                input_dhcp_hostname.value = config.wifi.sta.dhcp_hostname
                 input_push_url.value = config.push.url
                 input_push_interval.value = config.push.interval
                 input_mqtt_broker.value = config.mqtt.server

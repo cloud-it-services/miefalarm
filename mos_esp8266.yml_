@@ -24,6 +24,7 @@ config_schema:
   - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
   - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
   - ["wifi.sta.ssid", "s", "", { title: "Primary Wifi AP SSID" }]
+  - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP dhcp hostname" }]
   - ["wifi.sta.pass", "s", "", { title: "Primary Wifi AP password" }]
   - ["wifi.sta.enable", "b", false, { title: "Primary Wifi AP enabled" }]
   - ["mqtt.enable", "b", false, { title: "Enable MQTT" }]
@@ -43,6 +44,7 @@ config_schema:
   - ["thresholds.temperature.lower", "i", 20, { title: "Temperature lower bound" }]
   - ["thresholds.humidity.upper", "i", 70, { title: "Humidity upper bound" }]
   - ["thresholds.humidity.lower", "i", 40, { title: "Humidity lower bound" }]
+
 
 includes:
   - libs
