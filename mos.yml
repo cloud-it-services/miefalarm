@@ -18,41 +18,29 @@ filesystem:
 
 config_schema:
   - ["debug.level", "i", 2, { title: "Log level 0..error - 3..debug" }]
+  - ["rpc.auth_domain", "s", "settings",{title: "Realm to use for digest authentication"}]
+  - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
+  - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
+  - ["wifi.sta.ssid", "s", "", { title: "Primary Wifi AP SSID" }]
+  - ["wifi.sta.pass", "s", "", { title: "Primary Wifi AP password" }]
+  - ["wifi.sta.enable", "b", false, { title: "Primary Wifi AP enabled" }]
+  - ["mqtt.enable", "b", false, { title: "Enable MQTT" }]
+  - ["mqtt.server", "s", "", { title: "MQTT Broker address" }]
+  - ["mqtt.client_id", "s", "", { title: "Custom ID for this device" }]
+  - ["mqtt.user", "s", "", { title: "User for MQTT authentication" }]
+  - ["mqtt.pass", "s", "", { title: "Password for MQTT authentication" }]
+  - ["mqtt.topic", "s", "", { title: "Topic under which MQTT events should be published (Placeholder %s will be replaced by mqtt.client_id)" }]
+  - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
+  - ["auth.public_key", "s", "", { title: "Device authentication public key" }]
+  - ["cloud.enable", "b", true, { title: "Enable IOT Cloud data push" }]
+  - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
+  - ["push.interval", "i", 10, { title: "Push interval in seconds" }]
   - ["thresholds.co2.critical", "i", 2000, { title: "Critical CO2 ppm" }]
   - ["thresholds.co2.warn", "i", 1000, { title: "Warning CO2 ppm" }]
   - ["thresholds.temperature.upper", "i", 25, { title: "Temperature upper bound" }]
   - ["thresholds.temperature.lower", "i", 20, { title: "Temperature lower bound" }]
   - ["thresholds.humidity.upper", "i", 70, { title: "Humidity upper bound" }]
   - ["thresholds.humidity.lower", "i", 40, { title: "Humidity lower bound" }]
-  - ["rpc.auth_domain", "s", "settings",{title: "Realm to use for digest authentication"}]
-  - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
-  - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
-  - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP SSID" }]
-  - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP password" }]
-  #- ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP dhcp hostname" }]
-  - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP enabled" }]
-  #- ["http.ssl_ca_cert", "s", "ca.crt", { title: "Verify clients this CA bundle" }]
-  #- ["http.ssl_cert", "s", "cert.pem", { title: "Turn on SSL on the listener, use this cert" }]
-  #- ["http.ssl_key", "s", "key.pem", { title: "SSL key to use" }]
-  #- ["http.listen_addr", "s", "443", { title: "Listening port / address" }]
-  #- ["http.auth_domain", "s", "settings", {title: "Enable authentication of all HTTP requests"}]
-  #- ["http.auth_file", "s", "rpc_auth.txt", {title: "Password file to use for auth"}]
-  - ["push.url", "s", "", { title: "Push endpoint for sensor events"}]
-  - ["push.interval", "i", 10, { title: "Push interval in seconds" }]
-  - ["mqtt.enable", "b", true, { title: "Enable MQTT" }]
-  - ["mqtt.server", "s", "broker.losant.com:1883", { title: "MQTT Broker address" }]
-  - ["mqtt.client_id", "s", "6089306c6609710007e6f733", { title: "Custom ID for this device" }]
-  - ["mqtt.user", "s", "fc50cb9c-94d1-4867-91f1-705681e0b1a1", { title: "User for MQTT authentication" }]
-  - ["mqtt.pass", "s", "d2520161d7c5da7907035e6bdd854073aa0002a7fe073b463467f2a37bcc3883", { title: "Password for MQTT authentication" }]
-  - ["mqtt.topic", "s", "losant/%s/state", { title: "Topic under which MQTT events should be published (Placeholder %s will be replaced by mqtt.client_id)" }]
-  - ["auth.private_key", "s", "", { title: "Device authentication private key" }]
-  - ["auth.public_key", "s", "", { title: "Device authentication public key" }]
-  - ["cloud.enable", "b", true, { title: "Enable IOT Cloud data push" }]
-  #- ["update.url", "s", "http://miefalarm.de/api/devices/update", {title : "Fetch updates from here"}]
-  #- ["update.interval", "i", 10, { title: "Check for updates this often"}]
-  - ["dash.enable", "b", true, { title: "Enable mDash"}]
-  - ["dash.token", "s", "rensIf0N4CoyAo913ttiHJA", { title: "mDash device token"}]
-  - ["dash.ssl_ca_cert", "s", "ca.pem", {"title": "Verify server certificate using this CA bundle"}]
 
 includes:
   - libs
@@ -64,7 +52,6 @@ libs:
   - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/mongoose-os-libs/http-server
   - origin: https://github.com/mongoose-os-libs/wifi
-  #- origin: https://github.com/mongoose-os-libs/rpc-ws
   - origin: https://github.com/mongoose-os-libs/rpc-common
   - origin: https://github.com/mongoose-os-libs/rpc-uart
   - origin: https://github.com/mongoose-os-libs/rpc-service-fs
@@ -73,29 +60,9 @@ libs:
   - origin: https://github.com/mongoose-os-libs/mbedtls
   - origin: https://github.com/mongoose-os-libs/mqtt
   - origin: https://github.com/mongoose-os-libs/dash
-  #- origin: https://github.com/mongoose-os-libs/rpc-service-ota
-  #- origin: https://github.com/mongoose-os-libs/ota-http-client
-
-cdefs:
-  MGOS_ENABLE_WEB_CONFIG: 1
-  MGOS_ENABLE_FILE_UPLOAD: 1
-#  MG_ENABLE_IPV6: 0
 
 cflags:
   - "-Wimplicit-fallthrough=0"
-  #- "-Wno-nonnull"
-
-#conds:
-  #- when: mos.platform == "esp32"
-  #  apply:
-  #    build_vars:
-  #      ESP_IDF_SDKCONFIG_OPTS: >
-  #        ${build_vars.ESP_IDF_SDKCONFIG_OPTS}
-  #        CONFIG_FREERTOS_UNICORE=y
-  #- when: mos.platform == "esp32"
-  #  apply:
-  #    build_vars: # Add these
-  #      ESP_IDF_EXTRA_PARTITION: fs_ext,data,spiffs,,256K # two lines
 
 # Used by the mos tool to catch mos binaries incompatible with this file format
 manifest_version: 2017-05-18

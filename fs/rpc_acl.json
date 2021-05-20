@@ -1,25 +1,5 @@
 [
     {
-        "method": "Config.*",
-        "acl": "*",
-        "comment": "remove in production"
-    },
-    {
-        "method": "RPC.*",
-        "acl": "*",
-        "comment": "remove in production"
-    },
-    {
-        "method": "FS.*",
-        "acl": "*",
-        "comment": "remove in production"
-    },
-    {
-        "method": "SYS.*",
-        "acl": "*",
-        "comment": "remove in production"
-    },
-    {
         "method": "Config.Get",
         "ch_type": "HTTP",
         "acl": "*"
