@@ -50,12 +50,13 @@
 // ecdsa parameter
 #define HASH_LEN 32
 #define CURVE uECC_secp256k1()
-#define PRIVATE_KEY_LEN uECC_curve_private_key_size(CURVE)
-#define PUBLIC_KEY_LEN uECC_curve_public_key_size(CURVE)
-#define SIGNATURE_LEN uECC_curve_public_key_size(CURVE)
+#define PRIVATE_KEY_LEN 32
+#define PUBLIC_KEY_LEN 64
+#define PUBLIC_KEY_COMPRESSED_LEN 33
+#define SIGNATURE_LEN 64
 
 // ota update
-#define WIFI_OTA_DOWNLOAD_TIME_SEC 60
+//#define WIFI_OTA_DOWNLOAD_TIME_SEC 60
 
 // threads
 static struct pt pt_dht;
@@ -72,6 +73,73 @@ static uint8_t temperature = 0;
 static uint8_t humidity = 0;
 static uint16_t ppm = 0;
 static uint8_t calibrating = 0;
+
+static void net_cb(int ev, void *evd, void *arg)
+{
+    switch (ev)
+    {
+    case MGOS_NET_EV_DISCONNECTED:
+        LOG(LL_INFO, ("%s", "Net disconnected"));
+        break;
+    case MGOS_NET_EV_CONNECTING:
+        LOG(LL_INFO, ("%s", "Net connecting..."));
+        break;
+    case MGOS_NET_EV_CONNECTED:
+        LOG(LL_INFO, ("%s", "Net connected"));
+        break;
+    case MGOS_NET_EV_IP_ACQUIRED:
+        LOG(LL_INFO, ("%s", "Net got IP address"));
+        break;
+    }
+
+    (void)evd;
+    (void)arg;
+}
+
+#ifdef MGOS_HAVE_WIFI
+static void wifi_cb(int ev, void *evd, void *arg)
+{
+    switch (ev)
+    {
+    case MGOS_WIFI_EV_STA_DISCONNECTED:
+    {
+        struct mgos_wifi_sta_disconnected_arg *da =
+            (struct mgos_wifi_sta_disconnected_arg *)evd;
+        LOG(LL_INFO, ("WiFi STA disconnected, reason %d", da->reason));
+        break;
+    }
+    case MGOS_WIFI_EV_STA_CONNECTING:
+        LOG(LL_INFO, ("WiFi STA connecting %p", arg));
+        break;
+    case MGOS_WIFI_EV_STA_CONNECTED:
+        LOG(LL_INFO, ("WiFi STA connected %p", arg));
+        break;
+    case MGOS_WIFI_EV_STA_IP_ACQUIRED:
+        LOG(LL_INFO, ("WiFi STA IP acquired %p", arg));
+        break;
+    case MGOS_WIFI_EV_AP_STA_CONNECTED:
+    {
+        struct mgos_wifi_ap_sta_connected_arg *aa =
+            (struct mgos_wifi_ap_sta_connected_arg *)evd;
+        LOG(LL_INFO, ("WiFi AP STA connected MAC %02x:%02x:%02x:%02x:%02x:%02x",
+                      aa->mac[0], aa->mac[1], aa->mac[2], aa->mac[3], aa->mac[4],
+                      aa->mac[5]));
+        break;
+    }
+    case MGOS_WIFI_EV_AP_STA_DISCONNECTED:
+    {
+        struct mgos_wifi_ap_sta_disconnected_arg *aa =
+            (struct mgos_wifi_ap_sta_disconnected_arg *)evd;
+        LOG(LL_INFO,
+            ("WiFi AP STA disconnected MAC %02x:%02x:%02x:%02x:%02x:%02x",
+             aa->mac[0], aa->mac[1], aa->mac[2], aa->mac[3], aa->mac[4],
+             aa->mac[5]));
+        break;
+    }
+    }
+    (void)arg;
+}
+#endif /* MGOS_HAVE_WIFI */
 
 static void save_file(char *filename, char *data)
 {
@@ -110,19 +178,48 @@ int json(struct json_out *out, va_list *ap)
     return json_printf(out, "{temperature:%d,humidity:%d,co2:%d,calibrating:%B}", t->temperature, t->humidity, t->co2, t->calibrating);
 }
 
-static void sensor_data_to_json(char *buf, uint8_t len)
+void sensor_data_to_json(char *buf, uint8_t len)
 {
     struct json_out out = JSON_OUT_BUF(buf, len);
     sensor_data sd = {temperature, humidity, ppm, calibrating};
     json_printf(&out, "%M", json, &sd);
+
+    LOG(LL_DEBUG, ("SD: %s", buf));
 }
 
+void hex_encode(uint8_t *in, size_t len, char *out)
+{
+    const char hex[] = "0123456789abcdef";
+    uint8_t *pin = in;
+    char *pout = out;
+    for (; pin < in + len; pout += 2, pin++)
+    {
+        pout[0] = hex[(*pin >> 4) & 0xf];
+        pout[1] = hex[*pin & 0xf];
+    }
+    pout[0] = 0;
+}
+
+/*
 static void hex_encode(uint8_t *input_str, uint16_t len_str, char *encoded)
 {
     for (size_t i = 0; i < len_str; i++)
         encoded += sprintf(encoded, "%02x", input_str[i]);
 }
+*/
 
+void hex_decode(const char *in, size_t len, uint8_t *out)
+{
+    uint8_t i, t, hn, ln;
+    for (t = 0, i = 0; i < len; i += 2, ++t)
+    {
+        hn = in[i] > '9' ? in[i] - 'a' + 10 : in[i] - '0';
+        ln = in[i + 1] > '9' ? in[i + 1] - 'a' + 10 : in[i + 1] - '0';
+        out[t] = (hn << 4) | ln;
+    }
+}
+
+/*
 static void base64_encode(uint8_t *input_str, int len_str, uint8_t *encoded)
 {
     char char_set[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
@@ -192,85 +289,82 @@ static void base64_decode(uint8_t *encoded, int len_str, uint8_t *decoded)
     }
     decoded[k] = '\0';
 }
+*/
 
 int RNG(uint8_t *dest, unsigned size)
 {
-    while (size)
+    for (uint8_t i = 0; i < size; i++)
     {
-        *dest = mgos_rand_range(0, 255);
-        ++dest;
-        --size;
+        dest[i] = mgos_rand_range(0, 255);
     }
     return 1;
 }
 
-static uint8_t create_signature(char *message, uint8_t *sig)
+int create_signature(char message[], uint8_t sig[])
 {
 
     // Load private key
     const unsigned char *message_buffer = (const unsigned char *)message;
-    const char *privKeyBase64 = mgos_sys_config_get_auth_private_key();
+    const char *privKeyHex = mgos_sys_config_get_auth_private_key();
     uint8_t privKey[PRIVATE_KEY_LEN];
-    base64_decode((uint8_t *)privKeyBase64, strlen(privKeyBase64), privKey);
+    hex_decode(privKeyHex, 2 * PRIVATE_KEY_LEN, privKey);
 
     uint8_t hash[HASH_LEN];
     mbedtls_sha256(message_buffer, strlen(message), hash, 0);
-
-    char debugBuf[2 * HASH_LEN];
-    char *ptr = &debugBuf[0];
-    for (size_t i = 0; i < HASH_LEN; i++)
-    {
-        ptr += sprintf(ptr, "%02X", hash[i]);
-    }
-    LOG(LL_DEBUG, ("*** message: %s", message));
-    LOG(LL_DEBUG, ("*** hash: %s", debugBuf));
-
+    
     // Create signature
     uECC_set_rng(&RNG);
     const struct uECC_Curve_t *curve = CURVE;
-    if (!uECC_sign(privKey, hash, HASH_LEN, sig, curve))
+    if (!uECC_sign(privKey, hash, sizeof(hash), sig, curve))
     {
         LOG(LL_ERROR, ("signature creation failed"));
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
-static void create_keys()
+int create_keys()
 {
-    LOG(LL_INFO, ("generate keys"));
+    uint8_t privKey[PRIVATE_KEY_LEN];
+    char buffer[70];
 
-    uint8_t priv[PRIVATE_KEY_LEN];
-    uint8_t pub[PUBLIC_KEY_LEN];
-    uint8_t privKeyBase64[100];
-    uint8_t pubKeyBase64[100];
-
-    uECC_set_rng(RNG);
+    uECC_set_rng(&RNG);
     const struct uECC_Curve_t *curve = CURVE;
-    uECC_make_key(pub, priv, curve);
+    if (!uECC_make_key((uint8_t *)buffer, privKey, curve))
+        return 0;
 
-    base64_encode(priv, sizeof(priv), privKeyBase64);
-    base64_encode(pub, sizeof(pub), pubKeyBase64);
-    LOG(LL_INFO, ("*** private key: %s", privKeyBase64));
-    LOG(LL_INFO, ("*** public key: %s", pubKeyBase64));
+    if (!uECC_valid_public_key((uint8_t *)buffer, curve))
+        return 0;
 
-    mgos_sys_config_set_auth_private_key((const char *)privKeyBase64);
-    mgos_sys_config_set_auth_public_key((const char *)pubKeyBase64);
+    uint8_t pubKeyComp[PUBLIC_KEY_COMPRESSED_LEN];
+    uECC_compress((uint8_t *)buffer, pubKeyComp, curve);
+
+    hex_encode(privKey, sizeof(privKey), buffer);
+    mgos_sys_config_set_auth_private_key(buffer);
+    LOG(LL_INFO, ("private key: %s", buffer));
+
+    hex_encode(pubKeyComp, sizeof(pubKeyComp), buffer);
+    mgos_sys_config_set_auth_public_key(buffer);
+    LOG(LL_INFO, ("public key: %s", buffer));
 
     char *err = NULL;
     save_cfg(&mgos_sys_config, &err); /* Writes conf9.json */
     LOG(LL_DEBUG, ("Saving configuration: %s\n", err ? err : "no error"));
     free(err);
+    return 1;
 }
 
 static void send_response(struct mg_connection *c, char *data)
 {
-    if (data != NULL) {
+    if (data != NULL)
+    {
         mg_send_head(c, 200, strlen(data),
-                    "Cache: no-transform, no-cache\r\n"
-                    "Content-Type: application/json;charset=utf-8");
+                     "Cache: no-transform, no-cache\r\n"
+                     "Content-Type: application/json;charset=utf-8");
         mg_printf(c, "%s", data);
-    } else {
+    }
+    else
+    {
         mg_send_head(c, 200, 0, NULL);
     }
     c->flags |= MG_F_SEND_AND_CLOSE;
@@ -307,7 +401,11 @@ static void http_handler_auth_keys(struct mg_connection *c, int ev, void *p, voi
     if (ev != MG_EV_HTTP_REQUEST)
         return;
 
-    create_keys();
+    if (!create_keys())
+    {
+        LOG(LL_ERROR, ("*** create keys failed ***"));
+        return;
+    }
 
     char buf[200];
     snprintf(buf, sizeof(buf), "{\"public_key\":\"%s\"}", mgos_sys_config_get_auth_public_key());
@@ -320,7 +418,7 @@ static void http_handler_auth_admin_pass(struct mg_connection *c, int ev, void *
         return;
 
     struct http_message *hm = (struct http_message *)p;
-    
+
     char *password = NULL;
     char htdigest[100];
     uint8_t hash[16];
@@ -328,64 +426,37 @@ static void http_handler_auth_admin_pass(struct mg_connection *c, int ev, void *
 
     json_scanf(hm->body.p, hm->body.len, "{password:%Q}", &password);
     snprintf(htdigest, sizeof(htdigest), "admin:settings:%s", password);
-    md5_hash(hash, (uint8_t*) htdigest, strlen(htdigest));
+    md5_hash(hash, (uint8_t *)htdigest, strlen(htdigest));
     hex_encode(hash, sizeof(hash), str_hash);
-    
+
     snprintf(htdigest, sizeof(htdigest), "admin:settings:%s", str_hash);
     save_file("rpc_auth.txt", htdigest);
     send_response(c, NULL);
     free(password);
 }
-/**
- * HTTP API Handler END
- */
 
-/*
-static uint8_t post_sensor_data(const char *url, bool sign_data)
+uint8_t post_sensor_data(const char *url, char *data, bool sign_data)
 {
-    char data[200];
-    sensor_data_to_json(data, sizeof(data));
-
-    char pl[sizeof(data) + 100];
+    char pl[500];
     if (sign_data)
     {
         uint8_t sig[SIGNATURE_LEN];
-        uint8_t sigBase64[100];
-        create_signature(data, sig);
-        base64_encode(sig, strlen((char*) sig), sigBase64);
-        snprintf(pl, sizeof(pl), "{\"data\":%s,\"signature\":\"%hhn\",\"id\":\"%ld\"}", data, sigBase64, (long)mgos_uptime_micros());
-    } else {
-        snprintf(pl, sizeof(pl), "{\"data\":%s", data);
-    }
-
-    LOG(LL_DEBUG, ("*** http post pl: %s", pl));
-
-    struct mg_mgr *mgr = mgos_get_mgr();
-    struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", pl);
-    return conn != NULL ? 0 : 1;
-}
-*/
-
-static uint8_t post_sensor_data(const char *url, bool sign_data)
-{
-    char data[200];
-    sensor_data_to_json(data, sizeof(data));
-
-    char pl[sizeof(data) + 100];
-    if (sign_data)
-    {
-        uint8_t sig[SIGNATURE_LEN];
-        create_signature(data, sig);
-        char sigBuf[2 * sizeof(sig)];
-        hex_encode(sig, sizeof(sig), sigBuf);
-        snprintf(pl, sizeof(pl), "{\"data\":%s,\"signature\":\"%s\",\"id\":\"%ld\"}", data, sigBuf, (long)mgos_uptime_micros());
+        if (!create_signature(data, sig))
+            return 0;
+        char sigBuf[2 * SIGNATURE_LEN];
+        hex_encode(sig, SIGNATURE_LEN, sigBuf);
+        snprintf(pl, sizeof(pl), "{\"id\":\"%ld\",\"data\":%s,\"signature\":\"%s\"}", (long)mgos_uptime_micros(), data, sigBuf);
     }
     else
     {
-        snprintf(pl, sizeof(pl), "{\"data\":%s", data);
+        snprintf(pl, sizeof(pl), "{\"id\":\"%ld\",\"data\":%s}", (long)mgos_uptime_micros(), data);
     }
 
-    LOG(LL_DEBUG, ("*** http post pl: %s", pl));
+    /*
+    LOG(LL_DEBUG, ("URL: %s", url));
+    LOG(LL_DEBUG, ("PL: %s", pl));
+    LOG(LL_DEBUG, ("CL: %d", strlen(pl)));
+    */
 
     struct mg_mgr *mgr = mgos_get_mgr();
     struct mg_connection *conn = mg_connect_http(mgr, NULL, NULL, url, "Content-Type: application/json\r\n", pl);
@@ -481,7 +552,7 @@ void mhz19c_send_command(uint8_t command, uint16_t data)
 
 bool mhz19c_init()
 {
-    LOG(LL_INFO, ("*** init uart %d", UART_NO));
+    LOG(LL_INFO, ("init uart %d", UART_NO));
     struct mgos_uart_config ucfg;
     mgos_uart_config_set_defaults(UART_NO, &ucfg);
     ucfg.baud_rate = 9600;
@@ -684,18 +755,16 @@ int data_push_thread(struct pt *pt, uint16_t ticks)
             {
                 LOG(LL_ERROR, ("*** mqtt push failed ***"));
             }
-            timer = 0;
-            PT_WAIT_UNTIL(pt, timer >= 1);
+            PT_YIELD(pt);
         }
 
         // http
         const char *http_push_url = mgos_sys_config_get_push_url();
         if (http_push_url != NULL)
         {
-            uint8_t res = post_sensor_data(http_push_url, false);
+            uint8_t res = post_sensor_data(http_push_url, buf, false);
             LOG(LL_INFO, ("*** http push success: %d", res));
-            timer = 0;
-            PT_WAIT_UNTIL(pt, timer >= 1);
+            PT_YIELD(pt);
         }
 
         // iot cloud
@@ -703,10 +772,8 @@ int data_push_thread(struct pt *pt, uint16_t ticks)
         {
             char url[256];
             snprintf(url, sizeof(url), "https://miefalarm.de/api/devices/%s/state", mgos_sys_config_get_auth_public_key());
-            uint8_t res = post_sensor_data(url, true);
-            LOG(LL_INFO, ("*** cloud push success: %d", res));
-            timer = 0;
-            PT_WAIT_UNTIL(pt, timer >= 1);
+            uint8_t res = post_sensor_data(url, buf, true);
+            PT_YIELD(pt);
         }
 
         timer = 0;
@@ -723,13 +790,14 @@ static void main_loop(void *arg)
     last_tick = now;
 
     // schedule threads
+    mgos_wdt_enable();
     mgos_wdt_set_timeout(10);
     dht_thread(&pt_dht, ticks);
     mhz19c_measure_thread(&pt_mhz19c_measure, ticks);
     display_thread(&pt_display, ticks);
     button_thread(&pt_button, ticks);
-    //led_thread(&pt_led, ticks);
     data_push_thread(&pt_data_push, ticks);
+    //led_thread(&pt_led, ticks);
     mgos_wdt_feed();
 }
 
@@ -777,7 +845,13 @@ enum mgos_app_init_result mgos_app_init(void)
 
     // create keys
     if (mgos_sys_config_get_auth_public_key() == NULL)
-        create_keys();
+    {
+        if (!create_keys())
+        {
+            LOG(LL_ERROR, ("*** create keys failed ***"));
+            return MGOS_APP_INIT_ERROR;
+        }
+    }
 
     //LOG(LL_DEBUG, ("--- 4 ---"));
 
@@ -790,6 +864,13 @@ enum mgos_app_init_result mgos_app_init(void)
 
     //LOG(LL_DEBUG, ("--- 5 ---"));
 
+    /* Network connectivity events */
+    mgos_event_add_group_handler(MGOS_EVENT_GRP_NET, net_cb, NULL);
+
+#ifdef MGOS_HAVE_WIFI
+    mgos_event_add_group_handler(MGOS_WIFI_EV_BASE, wifi_cb, NULL);
+#endif
+
 #ifdef MGOS_HAVE_HTTP_SERVER
     mgos_register_http_endpoint("/api/sensor/state", http_handler_sensor_data, NULL);
     mgos_register_http_endpoint("/api/auth/keys/create", http_handler_auth_keys, NULL);      // TODO: restrict this path to authenticated user via acl (or using digest authentication)
@@ -799,7 +880,6 @@ enum mgos_app_init_result mgos_app_init(void)
     //LOG(LL_DEBUG, ("--- 6 ---"));
 
     // start main
-    mgos_wdt_enable();
     mgos_set_timer(MAIN_LOOP_TICK_MS, MGOS_TIMER_REPEAT, main_loop, NULL);
 
     //LOG(LL_DEBUG, ("--- 7 ---"));

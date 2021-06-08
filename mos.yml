@@ -17,14 +17,13 @@ filesystem:
   - fs
 
 config_schema:
-  - ["debug.level", "i", 2, { title: "Log level 0..error - 3..debug" }]
+  - ["debug.level", "i", 2, { title: "Log level 0..error - 4..verbose debug" }]
   - ["rpc.auth_domain", "s", "settings",{title: "Realm to use for digest authentication"}]
   - ["rpc.auth_file", "s", "rpc_auth.txt", {title: "File with user credentials in the htdigest format"}]
   - ["rpc.acl_file", "s", "rpc_acl.json", {title: "Access control list for RPC Calls"}]
-  - ["wifi.sta.ssid", "s", "", { title: "Primary Wifi AP SSID" }]
-  - ["wifi.sta.dhcp_hostname", "s", "miefalarm", { title: "Primary Wifi AP dhcp hostname" }]
-  - ["wifi.sta.pass", "s", "", { title: "Primary Wifi AP password" }]
-  - ["wifi.sta.enable", "b", false, { title: "Primary Wifi AP enabled" }]
+  - ["wifi.sta.ssid", "s", "technical", { title: "Primary Wifi AP SSID" }]
+  - ["wifi.sta.pass", "s", "12345678901234567890", { title: "Primary Wifi AP password" }]
+  - ["wifi.sta.enable", "b", true, { title: "Primary Wifi AP enabled" }]
   - ["mqtt.enable", "b", false, { title: "Enable MQTT" }]
   - ["mqtt.server", "s", "", { title: "MQTT Broker address" }]
   - ["mqtt.client_id", "s", "", { title: "Custom ID for this device" }]
@@ -60,7 +59,7 @@ libs:
   - origin: https://github.com/mongoose-os-libs/rpc-service-wifi
   - origin: https://github.com/mongoose-os-libs/mbedtls
   - origin: https://github.com/mongoose-os-libs/mqtt
-  - origin: https://github.com/mongoose-os-libs/dash
+  #- origin: https://github.com/mongoose-os-libs/dash
 
 cflags:
   - "-Wimplicit-fallthrough=0"
