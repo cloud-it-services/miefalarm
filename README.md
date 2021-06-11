@@ -20,8 +20,8 @@ To build the device, the following components are required:
 
 ### Wiring and Casing
 
-![Case](docs/case.jpg | width=100)
-![Wiring](docs/wiring.jpg | width=100)
+![Case](docs/case.jpg)
+![Wiring](docs/wiring.jpg)
 ### Firmware
 
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
