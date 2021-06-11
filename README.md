@@ -40,4 +40,4 @@ Through this interface it is possible to group different devices.
 Based on this, complex dashboards can be configured.
 For example, the air quality of different rooms in a building can be clearly displayed on one dashboard.
 
-![Multi-device dashboard](docs/ui_cloud_settings.png)
+![Multi-device dashboard](docs/ui_cloud_dashboard.png)
