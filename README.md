@@ -1,4 +1,4 @@
-# A CO2 / Temperature / Humidity Sensor for ESP32 and ESP8622 Platforms
+# A CO₂ / Temperature / Humidity Sensor for ESP32 and ESP8622 Platforms
 
 ## Overview
 
@@ -12,11 +12,16 @@ To build the device, the following components are required:
 
 - [ESP32 or ESP8622 board with integrated WiFi antenna](https://www.espressif.com/en/products/devkits)
 - [MH-Z19 CO2 sensor](https://esphome.io/components/sensor/mhz19.html)
-- [DHT11 temperature and humidity sensor](https://learn.adafruit.com/dht)
+- [DHT11 temperature and humidity sensor](https://www.az-delivery.de/en/products/5-x-dht11-temperatursensor)
 - [Mini traffic light](https://www.az-delivery.de/en/products/led-ampel-modul)
 - [Pack of jumper wires](https://www.az-delivery.de/en/products/mini-breadboard)
 - [Mini breadboard](https://www.az-delivery.de/en/products/mini-breadboard)
+- [Raspberry Pi cooling fan (optional)](https://www.az-delivery.de/en/products/aktiver-mini-kuhlventilator)
 
+### Wiring and Casing
+
+![Case](docs/case.jpg)
+![Wiring](docs/wiring.jpg)
 ### Firmware
 
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
