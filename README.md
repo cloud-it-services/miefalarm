@@ -23,11 +23,12 @@ The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can
 See [Mongoose OS C/C++ quickstart](https://mongoose-os.com/docs/mongoose-os/quickstart/develop-in-c.md) for the C/C++ development introduction.
 Once the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
 
-#### 3rd Party Libraries
+### 3rd party libraries used for this project
 
 - [Mongoose OS](https://github.com/cesanta/mongoose-os)
 - [Micro-ECC](https://github.com/kmackay/micro-ecc)
 - [Protothreads](https://github.com/markose/Protothreads)
+- [Chartist](https://github.com/gionkunz/chartist-js)
 ### User Interface
 
 Once you are connected to the network, you can access the device's web interface via a browser.
