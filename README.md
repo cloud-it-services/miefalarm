@@ -27,5 +27,8 @@ Once the firmware has been installed, the device acts as an access point to whic
 Once you are connected to the network, you can access the device's web interface via a browser.
 All you have to do is enter the IP address of the device in the browser bar.
 
+![Dashboard](docs/ui_dashboard.png)
+![Settings](docs/ui_settings.png)
+
 ### Miefalarm Cloud
 
