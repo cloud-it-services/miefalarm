@@ -253,7 +253,7 @@
             }
 
             .tabs .content {
-                margin-top: 40px;
+                margin-top: 50px;
             }
 
             .tabs .content section h2 {
@@ -381,14 +381,13 @@
             fill: green;
         }
 
+        .sec-header-text {
+            font-size: 2em;
+        }
+
         .sec-title {
             margin-bottom: 2.75rem;
             border-bottom: 1px solid #eee;
-        }
-
-        #calibrating {
-            float: right;
-            display: none;
         }
     </style>
 
@@ -437,7 +436,6 @@
                             <div class="card-header">
                                 <h3 class="card-title">
                                     CO2: <span id="currentCO2"></span> ppm
-                                    <span id="calibrating">...calibrating</span>
                                 </h3>
                             </div>
                             <div class="card-body">
@@ -477,7 +475,10 @@
                     <div class="col c12">
                         <div class="card">
                             <div class="card-header">
-                                <button id="btn_save_config" class="btn btn-sm btn-c" onclick="saveConfig()"
+                                <span class="sec-header-text">
+                                    Settings
+                                </span>
+                                <button id="btn_save_config" class="btn btn-sm btn-a" onclick="saveConfig()"
                                     style="float:right" disabled>Save settings</button>
                             </div>
                             <div class="card-body">
@@ -487,24 +488,24 @@
                                             General
                                         </h3>
                                         <div class="form-control">
-                                            <label for="admin_pass">New admin password:</label>
+                                            <label for="admin_pass">New Admin Password:</label>
                                             <input type="password" class="smooth" id="admin_pass" minlength="8"
                                                 autocomplete="off"
                                                 onchange="btn_set_admin_pass.disabled = input_admin_pass.value === input_admin_pass_repeat.value">
                                         </div>
                                         <div class="form-control">
-                                            <label for="admin_pass_repeat">Repeat new admin password:</label>
+                                            <label for="admin_pass_repeat">Repeat New Admin Password:</label>
                                             <input type="password" class="smooth" id="admin_pass_repeat" minlength="8"
                                                 autocomplete="off">
                                         </div>
                                         <div class="form-control">
-                                            <button id="btn_set_admin_pass" class="btn btn-sm btn-c"
-                                                onclick="setAdminPassword()" disabled>Set new password</button>
+                                            <button id="btn_set_admin_pass" class="btn btn-sm btn-a"
+                                                onclick="setAdminPassword()" disabled>Set New Password</button>
                                         </div>
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
-                                            WiFi connection
+                                            WiFi Connection
                                         </h3>
                                         <div class="form-control">
                                             <label for="wifi_ssid">Network:</label>
@@ -523,7 +524,7 @@
                                     </div>
                                     <div class="col c4">
                                         <h3 class="sec-title">
-                                            Sensor thresholds
+                                            Sensor Thresholds
                                         </h3>
                                         <div class="form-control">
                                             <label style="font-weight:bold">CO2:</label>
@@ -587,27 +588,6 @@
                                 <div class="row form">
                                     <div class="col c4">
                                         <h3 class="sec-title">
-                                            Sensor Data Push
-                                        </h3>
-                                        <div class="form-control">
-                                            <label for="cloud_device_url">IOT cloud device URL:</label>
-                                            <input type="url" class="smooth" id="cloud_device_url" readonly>
-                                            <button id="btn_create_device_url" class="btn btn-sm btn-c"
-                                                onclick="createNewDeviceURL()">Change</button>
-                                        </div>
-                                        <div class="form-control">
-                                            <label for="push_url">Custom HTTP endpoint URL:</label>
-                                            <input type="url" class="smooth" id="push_url"
-                                                placeholder="https://example.com/events" pattern="https://.*" size="30">
-                                        </div>
-                                        <div class="form-control">
-                                            <label for="push_interval">Push interval:</label>
-                                            every&nbsp;<input type="number" class="smooth" id="push_interval" min="0"
-                                                size="5" style="width:70px;">&nbsp;seconds
-                                        </div>
-                                    </div>
-                                    <div class="col c4">
-                                        <h3 class="sec-title">
                                             MQTT
                                         </h3>
                                         <div class="form-control">
@@ -633,6 +613,27 @@
                                                 placeholder="devices/%s/events">
                                         </div>
                                     </div>
+                                    <div class="col c8">
+                                        <h3 class="sec-title">
+                                            Sensor Data Push
+                                        </h3>
+                                        <div class="form-control">
+                                            <label for="cloud_device_url">Cloud URL:</label>
+                                            <a id="cloud_device_url" target="_blank" title="open cloud device URL"></a>
+                                            <button id="btn_create_device_url" class="btn btn-sm btn-a"
+                                                onclick="createNewDeviceURL()">Change</button>
+                                        </div>
+                                        <div class="form-control">
+                                            <label for="push_url">Custom HTTP Endpoint URL:</label>
+                                            <input type="url" class="smooth" id="push_url"
+                                                placeholder="https://example.com/events" pattern="https://.*" size="30">
+                                        </div>
+                                        <div class="form-control">
+                                            <label for="push_interval">Push Interval:</label>
+                                            every&nbsp;<input type="number" class="smooth" id="push_interval" min="0"
+                                                size="5" style="width:70px;">&nbsp;seconds
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -656,7 +657,7 @@
 
         const input_push_interval = document.getElementById("push_interval")
         const input_push_url = document.getElementById("push_url")
-        const input_cloud_device_url = document.getElementById("cloud_device_url")
+        const link_cloud_device_url = document.getElementById("cloud_device_url")
 
         const input_mqtt_broker = document.getElementById("mqtt_broker")
         const input_mqtt_client_id = document.getElementById("mqtt_client_id")
@@ -678,7 +679,6 @@
             co2: document.getElementById("currentCO2"),
             temperature: document.getElementById("currentTemperature"),
             humidity: document.getElementById("currentHumidity"),
-            calibrating: document.getElementById("calibrating")
         }
 
         const WIFI_AUTH_MODE = {
@@ -715,12 +715,10 @@
                 return
             }
             let data = await resp.json();
-            //console.log(`wifi networks: ${JSON.stringify(data)}`)
 
             // populate select
             input_wifi_ssid.options.length = 0;
             for (ap of data) {
-                //let text = `${ap.ssid} (${WIFI_AUTH_MODE[ap.auth]})`
                 let text = ap.ssid || ap.bssid
                 input_wifi_ssid.add(new Option(text, ap.ssid, false, ap.ssid === config.wifi.sta.ssid))
             };
@@ -729,30 +727,17 @@
 
         async function loadThresholds() {
 
-            let resp = await fetch("/rpc/Config.Get", {
-                method: "POST",
-                body: JSON.stringify({
-                    key: "thresholds"
-                })
-            })
+            let resp = await fetch("/api/sensor/config")
             if (resp.status !== 200) {
                 console.error("load thresholds failed")
                 return
             }
-            return await resp.json();
+            return await resp.json().thresholds;
         }
 
         async function loadConfig() {
 
             let resp = await fetch("/rpc/Config.Get")
-            /*
-            let resp = await fetch("/rpc/Config.Get", {
-              method: "POST",
-              body: JSON.stringify({
-                key:"wifi"
-              })
-            })
-            */
             if (resp.status !== 200) {
                 console.error("load config failed")
                 return
@@ -835,6 +820,7 @@
         }
 
         async function onSettingsClicked() {
+            //page_settings.style.visibility = "hidden"
             config = await loadConfig()
             if (config) {
                 input_dhcp_hostname.value = config.wifi.sta.dhcp_hostname
@@ -853,8 +839,11 @@
                 input_humidtiy_threshold_upper.value = config.thresholds.humidity.upper
 
                 if (config.auth.public_key) {
-                    input_cloud_device_url.value = `https://miefalarm.de/devices/${config.auth.public_key}`
+                    link_cloud_device_url
+                    link_cloud_device_url.href = `https://miefalarm.de/devices/${config.auth.public_key}`
+                    link_cloud_device_url.innerHTML = `https://miefalarm.de/devices/${config.auth.public_key}`
                 }
+                page_settings.style.visibility = "initial"
                 await wifiScan()
             }
         }
@@ -868,7 +857,8 @@
                 })
                 if (resp.status == 200) {
                     let data = await resp.json()
-                    input_cloud_device_url.value = `https://miefalarm.de/devices/${data.public_key}`
+                    link_cloud_device_url.href = `https://miefalarm.de/devices/${data.public_key}`
+                    link_cloud_device_url.innerHTML = `https://miefalarm.de/devices/${data.public_key}`
                 }
             }
         }
@@ -982,34 +972,29 @@
                 data = data.data;
                 let label = new Date().toLocaleTimeString().substr(0, 5)
                 for (d in data) {
-                    if (d === "calibrating") {
-                        textFields[d].style.display = data[d] ? "inline" : "none";
+                    textFields[d].innerHTML = data[d]
+                    if (cycleCount % 10 === 0) {
+                        chartData[d].labels.push(label)
                     } else {
-                        textFields[d].innerHTML = data[d]
-                        if (cycleCount % 10 === 0) {
-                            chartData[d].labels.push(label)
-                        } else {
-                            chartData[d].labels.push("")
+                        chartData[d].labels.push("")
+                    }
+                    chartData[d].labels.length > 100 && chartData[d].labels.shift()
+                    chartData[d].series[0].push(data[d])
+                    chartData[d].series[0].length > 100 && chartData[d].series[0].shift()
+                    if (getComputedStyle(page_dashboard).display !== "none") {
+                        let options = null
+                        if (d === "co2") {
+                            try {
+                                options = {
+                                    plugins: [
+                                        Chartist.plugins.ctThreshold({
+                                            threshold: config.co2.ppm.critical
+                                        })
+                                    ]
+                                }
+                            } catch (e) {}
                         }
-                        chartData[d].labels.length > 100 && chartData[d].labels.shift()
-                        //let val = `${data[d]} ${d === "temperature" ? "°C" : "%"}`
-                        chartData[d].series[0].push(data[d])
-                        chartData[d].series[0].length > 100 && chartData[d].series[0].shift()
-                        if (getComputedStyle(page_dashboard).display !== "none") {
-                            let options = null
-                            if (d === "co2") {
-                                try {
-                                    options = {
-                                        plugins: [
-                                            Chartist.plugins.ctThreshold({
-                                                threshold: config.co2.ppm.critical
-                                            })
-                                        ]
-                                    }
-                                } catch (e) {}
-                            }
-                            options ? charts[d].update(chartData[d], options, true) : charts[d].update(chartData[d])
-                        }
+                        options ? charts[d].update(chartData[d], options, true) : charts[d].update(chartData[d])
                     }
                 }
                 cycleCount++

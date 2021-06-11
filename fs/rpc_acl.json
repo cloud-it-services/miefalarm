@@ -1,10 +1,5 @@
 [
     {
-        "method": "Config.Get",
-        "ch_type": "HTTP",
-        "acl": "*"
-    },
-    {
         "method": "Config.*",
         "ch_type": "HTTP",
         "acl": "admin"

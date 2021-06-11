@@ -22,7 +22,8 @@
     {
         "method": "Config.Get",
         "ch_type": "HTTP",
-        "acl": "*"
+        "acl": "*",
+        "comment": "remove in production"
     },
     {
         "method": "Config.*",

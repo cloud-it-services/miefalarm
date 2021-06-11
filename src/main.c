@@ -169,22 +169,37 @@ typedef struct
     uint8_t temperature;
     uint8_t humidity;
     uint16_t co2;
-    uint8_t calibrating;
+    //uint8_t calibrating;
 } sensor_data;
 
-int json(struct json_out *out, va_list *ap)
+int sensor_data_json(struct json_out *out, va_list *ap)
 {
     sensor_data *t = va_arg(*ap, sensor_data *);
-    return json_printf(out, "{temperature:%d,humidity:%d,co2:%d,calibrating:%B}", t->temperature, t->humidity, t->co2, t->calibrating);
+    //return json_printf(out, "{temperature:%d,humidity:%d,co2:%d,calibrating:%B}", t->temperature, t->humidity, t->co2, t->calibrating);
+    return json_printf(out, "{temperature:%d,humidity:%d,co2:%d}", t->temperature, t->humidity, t->co2);
 }
 
 void sensor_data_to_json(char *buf, uint8_t len)
 {
     struct json_out out = JSON_OUT_BUF(buf, len);
-    sensor_data sd = {temperature, humidity, ppm, calibrating};
-    json_printf(&out, "%M", json, &sd);
+    sensor_data sd = {temperature, humidity, ppm};
+    json_printf(&out, "%M", sensor_data_json, &sd);
 
     LOG(LL_DEBUG, ("SD: %s", buf));
+}
+
+void config_to_json(char *buf, uint8_t len)
+{
+    snprintf(buf, len, "{\"thresholds\":{\"co2\":{\"critical\":%d,\"warn\":%d},\"temperature\":{\"upper\":%d,\"lower\":%d},\"humidity\":{\"upper\":%d,\"lower\":%d}}}",
+        mgos_sys_config_get_thresholds_co2_critical(),
+        mgos_sys_config_get_thresholds_co2_warn(),
+        mgos_sys_config_get_thresholds_temperature_upper(),
+        mgos_sys_config_get_thresholds_temperature_lower(),
+        mgos_sys_config_get_thresholds_humidity_upper(),
+        mgos_sys_config_get_thresholds_humidity_lower()
+    );
+
+    LOG(LL_DEBUG, ("TH: %s", buf));
 }
 
 void hex_encode(uint8_t *in, size_t len, char *out)
@@ -311,7 +326,7 @@ int create_signature(char message[], uint8_t sig[])
 
     uint8_t hash[HASH_LEN];
     mbedtls_sha256(message_buffer, strlen(message), hash, 0);
-    
+
     // Create signature
     uECC_set_rng(&RNG);
     const struct uECC_Curve_t *curve = CURVE;
@@ -384,7 +399,17 @@ static void md5_hash(uint8_t *hash, uint8_t *text, size_t text_len)
 /**
  * HTTP API Handler
  */
-static void http_handler_sensor_data(struct mg_connection *c, int ev, void *p, void *user_data)
+static void http_handler_sensor_config(struct mg_connection *c, int ev, void *p, void *user_data)
+{
+    if (ev != MG_EV_HTTP_REQUEST)
+        return;
+
+    char buf[200];
+    config_to_json(buf, sizeof(buf));
+    send_response(c, buf);
+}
+
+static void http_handler_sensor_state(struct mg_connection *c, int ev, void *p, void *user_data)
 {
     if (ev != MG_EV_HTTP_REQUEST)
         return;
@@ -872,7 +897,8 @@ enum mgos_app_init_result mgos_app_init(void)
 #endif
 
 #ifdef MGOS_HAVE_HTTP_SERVER
-    mgos_register_http_endpoint("/api/sensor/state", http_handler_sensor_data, NULL);
+    mgos_register_http_endpoint("/api/sensor/config", http_handler_sensor_config, NULL);
+    mgos_register_http_endpoint("/api/sensor/state", http_handler_sensor_state, NULL);
     mgos_register_http_endpoint("/api/auth/keys/create", http_handler_auth_keys, NULL);      // TODO: restrict this path to authenticated user via acl (or using digest authentication)
     mgos_register_http_endpoint("/api/auth/admin/pass", http_handler_auth_admin_pass, NULL); // TODO: restrict this path to authenticated user via acl (or using digest authentication)
 #endif

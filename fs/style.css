@@ -225,10 +225,9 @@ input[type=text] {
     position: fixed;
     top: 0;
     width: 20%;
-    /*
-    height: 24px;
-    padding: 11px 0 15px
-    */
+    width: 100%;
+    background: #efefef;
+    padding: 10px;
 }
 
 .nav a {
