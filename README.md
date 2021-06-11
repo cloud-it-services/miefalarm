@@ -6,7 +6,7 @@ The sensor can be used to measure the CO2 content, temperature and humidity insi
 The measured data can be read directly from the sensor via the integrated web interface.
 Alternatively, the measured values can be sent to any web server or cloud provider via MQTT or HTTP.
 
-# Required Hardware Components
+### Required Hardware Components
 
 To build the sensor, the following components are needed:
 
@@ -17,15 +17,15 @@ To build the sensor, the following components are needed:
 - [Pack of jumber wires](https://www.az-delivery.de/en/products/mini-breadboard)
 - [Mini breadboard](https://www.az-delivery.de/en/products/mini-breadboard)
 
-# Firmware
+### Firmware
 
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
 See [Mongoose OS C/C++ quickstart](https://mongoose-os.com/docs/mongoose-os/quickstart/develop-in-c.md) for the C/C++ development introduction.
-# User Interface
+### User Interface
 
 Once the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
 Once you are connected to the network, you can access the device's web interface via a browser.
 All you have to do is enter the IP address of the device in the browser bar.
 
-# Miefalarm Cloud
+### Miefalarm Cloud
 
