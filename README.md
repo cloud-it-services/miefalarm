@@ -32,6 +32,20 @@ Once the firmware has been installed, the device acts as an access point to whic
 - [Chartist](https://github.com/gionkunz/chartist-js)
 ### Wiring and casing
 
+Wiring is as follows, but can of course be customized according to your needs.
+
+- PIN_DHT 21
+- PIN_MHZ19C_HD 33
+- PIN_LED_RED 27
+- PIN_LED_YELLOW 26
+- PIN_LED_GREEN 25
+- PIN_BUTTON_CALIBRATE 0
+- UART_NO 2
+
+The case was printed with a 3D printer.
+There are ventilation slots at the top and bottom.
+Additionally, a Raspi fan was integrated for active ventilation.
+
 ![Case](docs/case.jpg)
 ![Case inside](docs/wiring.jpg)
 ![Wiring](docs/wiring.png)
