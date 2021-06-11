@@ -6,7 +6,7 @@ The sensor can be used to measure the CO2 content, temperature and humidity insi
 The measured data can be read directly from the sensor via the integrated web interface.
 Alternatively, the measured values can be sent to any web server or cloud provider via MQTT or HTTP.
 
-### Required Hardware Components
+### Required hardware components
 
 To build the device, the following components are required:
 
@@ -29,7 +29,7 @@ Once the firmware has been installed, the device acts as an access point to whic
 - [Micro-ECC](https://github.com/kmackay/micro-ecc)
 - [Protothreads](https://github.com/markose/Protothreads)
 - [Chartist](https://github.com/gionkunz/chartist-js)
-### User Interface
+### User interface
 
 Once you are connected to the network, you can access the device's web interface via a browser.
 All you have to do is enter the IP address of the device in the browser bar.
@@ -38,7 +38,7 @@ The settings are secured using Digest Authentication. The default credentials ar
 ![Dashboard](docs/ui_dashboard.png)
 ![Settings](docs/ui_settings.png)
 
-### Miefalarm Cloud
+### Miefalarm cloud
 
 The device is connected to a cloud application by default.
 As soon as a WiFi connection to a network with Internet access is established, the device sends the sensor data to the cloud URL.
