@@ -18,10 +18,6 @@ To build the device, the following components are required:
 - [Mini breadboard](https://www.az-delivery.de/en/products/mini-breadboard)
 - [Raspberry Pi cooling fan (optional)](https://www.az-delivery.de/en/products/aktiver-mini-kuhlventilator)
 
-### Wiring and Casing
-
-![Case](docs/case.jpg)
-![Wiring](docs/wiring.jpg)
 ### Firmware
 
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
@@ -34,6 +30,11 @@ Once the firmware has been installed, the device acts as an access point to whic
 - [Micro-ECC](https://github.com/kmackay/micro-ecc)
 - [Protothreads](https://github.com/markose/Protothreads)
 - [Chartist](https://github.com/gionkunz/chartist-js)
+### Wiring and casing
+
+![Case](docs/case.jpg)
+![Case inside](docs/wiring.jpg)
+![Wiring](docs/wiring.png)
 ### User interface
 
 Once you are connected to the network, you can access the device's web interface via a browser.
