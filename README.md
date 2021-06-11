@@ -8,7 +8,7 @@ Alternatively, the measured values can be sent to any web server or cloud provid
 
 ### Required Hardware Components
 
-To build the sensor, the following components are needed:
+To build the device, the following components are required:
 
 - [ESP32 or ESP8622 board with integrated WiFi antenna](https://www.espressif.com/en/products/devkits)
 - [MH-Z19 CO2 sensor](https://esphome.io/components/sensor/mhz19.html)
@@ -22,6 +22,12 @@ To build the sensor, the following components are needed:
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
 See [Mongoose OS C/C++ quickstart](https://mongoose-os.com/docs/mongoose-os/quickstart/develop-in-c.md) for the C/C++ development introduction.
 Once the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
+
+#### 3rd Party Libraries
+
+- [Mongoose OS](https://github.com/cesanta/mongoose-os)
+- [Micro-ECC](https://github.com/kmackay/micro-ecc)
+- [Protothreads](https://github.com/markose/Protothreads)
 ### User Interface
 
 Once you are connected to the network, you can access the device's web interface via a browser.
