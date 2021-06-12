@@ -24,6 +24,12 @@ The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can
 See [Mongoose OS C/C++ quickstart](https://mongoose-os.com/docs/mongoose-os/quickstart/develop-in-c.md) for the C/C++ development introduction.
 Once the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
 
+### Build and installation
+
+```bash
+mos build && mos flash
+```
+
 ### 3rd party libraries used for this project
 
 - [Mongoose OS](https://github.com/cesanta/mongoose-os)
