@@ -22,7 +22,6 @@ To build the device, the following components are required:
 
 The firmware is based on [Mongoose OS](https://mongoose-os.com/mos.html) and can be used freely.
 See [Mongoose OS C/C++ quickstart](https://mongoose-os.com/docs/mongoose-os/quickstart/develop-in-c.md) for the C/C++ development introduction.
-Once the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
 
 ### Build and installation
 
@@ -57,9 +56,17 @@ Additionally, a Raspi fan was integrated for active ventilation.
 ![Wiring](docs/wiring.png)
 ### User interface
 
+After the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
+
+Mongoose OS starts a WiFi network called `Mongoose_XXXXXX` with password `Mongoose`.
+Switch your smartphone to that WiFi network.
+
 Once you are connected to the network, you can access the device's web interface via a browser.
-All you have to do is enter the IP address of the device in the browser bar.
-The settings are secured using Digest Authentication. The default credentials are admin:admin.
+Point your favorite web browser to http://192.168.4.1
+You should then see the user interface of the device. 
+
+The settings are secured using Digest Authentication.
+The default credentials are admin:admin.
 
 ![Dashboard](docs/ui_dashboard.png)
 ![Settings](docs/ui_settings.png)

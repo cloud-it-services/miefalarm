@@ -820,7 +820,7 @@
         }
 
         async function onSettingsClicked() {
-            //page_settings.style.visibility = "hidden"
+            page_settings.style.visibility = "hidden"
             config = await loadConfig()
             if (config) {
                 input_dhcp_hostname.value = config.wifi.sta.dhcp_hostname
