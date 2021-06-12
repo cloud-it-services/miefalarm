@@ -68,6 +68,9 @@ You should then see the user interface of the device.
 The settings are secured using [Digest access authentication](https://en.wikipedia.org/wiki/Digest_access_authentication).
 The default credentials are `admin:admin`.
 
+Select a WiFi network and enter the password.
+In addition, you can assign a host name for the device so that you can better identify it in your network.
+
 ![Dashboard](docs/ui_dashboard.png)
 ![Settings](docs/ui_settings.png)
 
