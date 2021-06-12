@@ -76,8 +76,8 @@ The default credentials are admin:admin.
 The device is connected to a cloud application by default.
 As soon as a WiFi connection to a network with Internet access is established, the device sends the sensor data to the cloud URL.
 By clicking on the corresponding link in the settings, you can access the device configuration of the cloud application.
-Through this interface it is possible to group different devices.
-Based on this, complex dashboards can be configured.
+
+By using this interface it is possible to group different devices and build complex dashboards.
 For example, the air quality of different rooms in a building can be clearly displayed on one dashboard.
 
 ![Multi-device dashboard](docs/ui_cloud_dashboard.png)
