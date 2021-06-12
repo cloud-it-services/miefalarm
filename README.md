@@ -65,7 +65,7 @@ Once you are connected to the network, you can access the device's web interface
 Point your favorite web browser to http://192.168.4.1
 You should then see the user interface of the device. 
 
-The settings are secured using Digest Authentication.
+The settings are secured using [Digest access authentication](https://en.wikipedia.org/wiki/Digest_access_authentication).
 The default credentials are `admin:admin`.
 
 ![Dashboard](docs/ui_dashboard.png)
