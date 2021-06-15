@@ -59,10 +59,16 @@ libs:
   - origin: https://github.com/mongoose-os-libs/rpc-service-wifi
   - origin: https://github.com/mongoose-os-libs/mbedtls
   - origin: https://github.com/mongoose-os-libs/mqtt
+  - origin: https://github.com/mongoose-os-libs/arduino-compat
+  - origin: https://github.com/mongoose-os-libs/arduino-wire
+  - origin: https://github.com/mongoose-os-libs/arduino-adafruit-gfx
+  - origin: https://github.com/mongoose-os-libs/arduino-adafruit-ssd1306
   #- origin: https://github.com/mongoose-os-libs/dash
 
 cflags:
   - "-Wimplicit-fallthrough=0"
+  - "-fno-permissive"
+  - "-Wno-error"
 
 # Used by the mos tool to catch mos binaries incompatible with this file format
 manifest_version: 2017-05-18
