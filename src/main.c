@@ -18,7 +18,9 @@
 //#include "mbedtls/platform.h"
 
 // device pins
-#define PIN_DHT 21
+#define PIN_SDA 21
+#define PIN_SCL 22
+#define PIN_DHT 23
 #define PIN_MHZ19C_HD 33
 #define PIN_LED_RED 27
 #define PIN_LED_YELLOW 26
@@ -191,13 +193,12 @@ void sensor_data_to_json(char *buf, uint8_t len)
 void config_to_json(char *buf, uint8_t len)
 {
     snprintf(buf, len, "{\"thresholds\":{\"co2\":{\"critical\":%d,\"warn\":%d},\"temperature\":{\"upper\":%d,\"lower\":%d},\"humidity\":{\"upper\":%d,\"lower\":%d}}}",
-        mgos_sys_config_get_thresholds_co2_critical(),
-        mgos_sys_config_get_thresholds_co2_warn(),
-        mgos_sys_config_get_thresholds_temperature_upper(),
-        mgos_sys_config_get_thresholds_temperature_lower(),
-        mgos_sys_config_get_thresholds_humidity_upper(),
-        mgos_sys_config_get_thresholds_humidity_lower()
-    );
+             mgos_sys_config_get_thresholds_co2_critical(),
+             mgos_sys_config_get_thresholds_co2_warn(),
+             mgos_sys_config_get_thresholds_temperature_upper(),
+             mgos_sys_config_get_thresholds_temperature_lower(),
+             mgos_sys_config_get_thresholds_humidity_upper(),
+             mgos_sys_config_get_thresholds_humidity_lower());
 
     LOG(LL_DEBUG, ("TH: %s", buf));
 }
