@@ -14,7 +14,7 @@ To build the device, the following components are required:
 - [MH-Z19 CO2 sensor](https://esphome.io/components/sensor/mhz19.html)
 - [DHT11 temperature and humidity sensor](https://www.az-delivery.de/en/products/5-x-dht11-temperatursensor)
 - [Mini traffic light](https://www.az-delivery.de/en/products/led-ampel-modul)
-- [Pack of jumper wires](https://www.az-delivery.de/en/products/mini-breadboard)
+- [Pack of jumper wires](https://www.az-delivery.de/en/products/40-stk-jumper-wire-female-to-male-20-zentimeter)
 - [Mini breadboard](https://www.az-delivery.de/en/products/mini-breadboard)
 - [Raspberry Pi cooling fan (optional)](https://www.az-delivery.de/en/products/aktiver-mini-kuhlventilator)
 
