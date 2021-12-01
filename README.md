@@ -53,7 +53,7 @@ Additionally, a Raspi fan was integrated for active ventilation.
 
 ![Case](docs/case.jpg)
 ![Case inside](docs/case_inside.jpg)
-![Wiring](docs/wiring.png)
+![Wiring](docs/sensor_wiring.png)
 ![Ports](docs/ports.png)
 ### User interface
 
