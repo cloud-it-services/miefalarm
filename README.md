@@ -52,8 +52,9 @@ There are ventilation slots at the top and bottom.
 Additionally, a Raspi fan was integrated for active ventilation.
 
 ![Case](docs/case.jpg)
-![Case inside](docs/wiring.jpg)
+![Case inside](docs/case_inside.jpg)
 ![Wiring](docs/wiring.png)
+![Ports](docs/ports.png)
 ### User interface
 
 After the firmware has been installed, the device acts as an access point to which you can connect via smartphone, for example.
